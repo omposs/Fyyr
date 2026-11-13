@@ -1,6 +1,7 @@
 from sqlalchemy import select
 
 from app import profile_company
+from app.sources.crawler import CrawledPage
 from app.models import Member, ProfileItem
 
 TELECOM = ("Acme Networks develops 5G radio access network software for mobile operators in Sweden and "
@@ -9,7 +10,7 @@ TELECOM = ("Acme Networks develops 5G radio access network software for mobile o
 
 
 def test_company_cli_profiles_telecom_text(db, monkeypatch, capsys):
-    monkeypatch.setattr(profile_company, "fetch_raw", lambda url, allowed=None: f"<html><body>{TELECOM}</body></html>")
+    monkeypatch.setattr(profile_company, "crawl_site", lambda url: [CrawledPage(url, TELECOM)])
     assert profile_company.main(["x", "Acme Networks", "https://acme.example/about"]) == 0
     out = capsys.readouterr().out
     assert "API token for Acme Networks" in out and "WARNING" in out  # short text triggers the JS warning
@@ -22,9 +23,9 @@ def test_company_cli_profiles_telecom_text(db, monkeypatch, capsys):
 
 
 def test_company_cli_reports_fetch_failure(monkeypatch, capsys):
-    def boom(url, allowed=None):
+    def boom(url):
         raise RuntimeError("network down")
 
-    monkeypatch.setattr(profile_company, "fetch_raw", boom)
+    monkeypatch.setattr(profile_company, "crawl_site", boom)
     assert profile_company.main(["x", "A", "https://a.example"]) == 1
-    assert "Fetch failed" in capsys.readouterr().out
+    assert "Crawl failed" in capsys.readouterr().out

@@ -3,6 +3,10 @@ from __future__ import annotations
 from typing import Any, Protocol
 
 
+class ProviderError(Exception):
+    """Transport or API failure talking to a model (network, auth, rate limit, server error)."""
+
+
 class LLMProvider(Protocol):
     """Everything the agents need from a model. Swap providers by implementing this."""
 

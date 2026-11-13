@@ -13,6 +13,22 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = None
     llm_model: str = "claude-sonnet-5-5"
     llm_max_tokens: int = 1500
+    # auto = anthropic if a key is set, else mock.  Or force: anthropic | openai_compat | mock
+    llm_provider: str = "auto"
+    # OpenAI-compatible endpoint, e.g. Ollama at http://localhost:11434/v1
+    openai_base_url: str = "http://localhost:11434/v1"
+    openai_model: str = "llama3.1"
+    openai_api_key: str | None = None
+    openai_timeout_seconds: float = 180.0
+
+    # Profiling
+    chunk_chars: int = 12000
+    chunk_overlap: int = 500
+    extraction_attempts: int = 2
+    stale_after_days: int = 180
+    crawl_max_pages: int = 5
+    crawl_delay_seconds: float = 1.0
+    crawl_user_agent: str = "BlueScienceParkBot/0.1"
 
     # Web source fetching: only these hosts may be fetched by the profiling agent.
     # Empty list means no live fetching at all (seed/fixture sources only).

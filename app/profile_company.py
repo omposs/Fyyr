@@ -2,22 +2,20 @@
 
     python -m app.profile_company "Ericsson" https://www.ericsson.com/en/about-us
 
-The host of the URL you pass is allowed for this one fetch (you are the operator and chose it).
-Creates the member if needed, fetches the page, runs the profiling agent, prints the result.
+You are the operator and chose the URL, so its host is allowed for this crawl. The crawler follows a few
+same-site pages (about, products, technology ...), honours robots.txt, then runs the profiling agent.
 Run it on your own machine: the cloud sandbox cannot reach arbitrary sites.
 """
 from __future__ import annotations
 
 import sys
-from urllib.parse import urlparse
-
 from sqlalchemy import select
 
 from app.agents.profiling import run_profiling, visible_items
 from app.db import SessionLocal, init_db
 from app.models import Member
 from app.schemas import SourceDocIn
-from app.sources.fetcher import FetchError, fetch_raw, html_to_text
+from app.sources.crawler import crawl_site
 
 MIN_USEFUL_CHARS = 500
 
@@ -27,14 +25,16 @@ def main(argv: list[str]) -> int:
         print(__doc__)
         return 2
     name, url = argv[1], argv[2]
-    host = urlparse(url).hostname or ""
     try:
-        text = html_to_text(fetch_raw(url, [host]))
-    except (FetchError, Exception) as e:
-        print(f"Fetch failed: {type(e).__name__}: {e}")
+        pages = crawl_site(url)
+    except Exception as e:
+        print(f"Crawl failed: {type(e).__name__}: {e}")
         return 1
-    print(f"Fetched {len(text)} characters of text from {url}")
-    if len(text) < MIN_USEFUL_CHARS:
+    total = sum(len(p.text) for p in pages)
+    print(f"Fetched {len(pages)} page(s), {total} characters of text:")
+    for p in pages:
+        print(f"  {len(p.text):7d}  {p.url}")
+    if total < MIN_USEFUL_CHARS:
         print("WARNING: very little text. The page is probably rendered by JavaScript. Try a different "
               "page (an 'about' or press page), or paste the text in via POST /me/profile/run.")
     init_db()
@@ -44,8 +44,10 @@ def main(argv: list[str]) -> int:
             m = Member(name=name, website=url)
             db.add(m)
             db.commit()
-        res = run_profiling(db, m, [SourceDocIn(url=url, title=name, text=text)])
-        print(f"added={res.items_added} rejected={res.items_rejected}")
+        res = run_profiling(db, m, [SourceDocIn(url=p.url, title=name, text=p.text) for p in pages])
+        print(f"added={res.items_added} refreshed={res.items_refreshed} rejected={res.items_rejected}")
+        for f in res.sources_failed:
+            print(f"  FAILED: {f}")
         for r in res.rejected_reasons[:10]:
             print(f"  rejected: {r}")
         for it in visible_items(db, m.id, viewer_is_owner=True):

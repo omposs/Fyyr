@@ -36,6 +36,8 @@ class ProfileItemOut(BaseModel):
     evidence: str | None
     confidence: float
     approved: bool
+    last_seen_at: datetime
+    stale: bool
 
 
 class PublicProfileItemOut(BaseModel):
@@ -85,6 +87,8 @@ class ProfilingRunOut(BaseModel):
     items_added: int
     items_rejected: int
     rejected_reasons: list[str]
+    items_refreshed: int = 0
+    sources_failed: list[str] = []
 
 
 class RecommendationOut(BaseModel):

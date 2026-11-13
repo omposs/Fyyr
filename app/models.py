@@ -108,8 +108,20 @@ class ProfileItem(Base):
     removed: Mapped[bool] = mapped_column(Boolean, default=False)  # soft delete, keeps audit trail
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    # Last time an agent run saw this item in a source. Drives the stale flag.
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     member: Mapped[Member] = relationship(back_populates="items")
+
+    @property
+    def stale(self) -> bool:
+        """Agent-found items nobody has re-confirmed recently. Company-authored items never go stale."""
+        from app.config import get_settings
+
+        if self.origin != Origin.agent.value or self.last_seen_at is None:
+            return False
+        seen = self.last_seen_at if self.last_seen_at.tzinfo else self.last_seen_at.replace(tzinfo=timezone.utc)
+        return (utcnow() - seen).days > get_settings().stale_after_days
 
 
 class AuditLog(Base):

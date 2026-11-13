@@ -2,12 +2,15 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+from urllib.parse import urlparse
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.agents.profiling import run_profiling, visible_items
 from app.chat.assistant import handle_chat
+from app.config import get_settings
 from app.db import get_db
 from app.deps import audit, current_member, require_admin
 from app.matching.matcher import matches_for, recompute_matches
@@ -16,7 +19,8 @@ from app.monitoring.ranking import recommend
 from app.schemas import (ChatIn, ChatOut, MatchOut, MemberCreate, MemberCreated, MemberOut, ProfileItemCreate,
                          ProfileItemOut, ProfileItemPatch, ProfileOut, ProfilingRunOut, PublicProfileItemOut,
                          PublicProfileOut, RecommendationOut, SourceDocIn)
-from app.sources.fetcher import FetchError, fetch_text
+from app.sources.crawler import crawl_site
+from app.sources.fetcher import FetchError
 
 router = APIRouter()
 
@@ -51,11 +55,17 @@ def _run(db: Session, member: Member, docs: list[SourceDocIn] | None) -> Profili
     if not docs:
         if not member.website:
             raise HTTPException(422, "No documents supplied and member has no website")
+        allowed = get_settings().fetch_allowed_domains
+        host = (urlparse(member.website).hostname or "").lower().removeprefix("www.")
+        if host not in {d.lower().removeprefix("www.") for d in allowed}:
+            raise HTTPException(422, f"{host or 'This website'} is not on the fetch allowlist (BSP_FETCH_ALLOWED_DOMAINS)")
         try:
-            text = fetch_text(member.website)
-        except FetchError as e:
-            raise HTTPException(422, f"Cannot fetch website: {e}") from e
-        docs = [SourceDocIn(url=member.website, title=member.name, text=text)]
+            pages = crawl_site(member.website)
+        except Exception as e:  # FetchError, httpx errors: report, do not 500
+            raise HTTPException(422, f"Cannot crawl website: {type(e).__name__}: {e}") from e
+        docs = [SourceDocIn(url=p.url, title=member.name, text=p.text) for p in pages]
+        if not docs:
+            raise HTTPException(422, "The site returned no readable text (JavaScript-rendered?)")
     return run_profiling(db, member, docs)
 
 
