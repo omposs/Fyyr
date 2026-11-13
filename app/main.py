@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 
 from app.api.routes import router
 from app.db import init_db
@@ -19,3 +20,8 @@ app.include_router(router)
 @app.get("/health", tags=["meta"])
 def health():
     return {"status": "ok"}
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse("/docs")

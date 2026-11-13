@@ -32,8 +32,11 @@ class SeedFileConnector:
         return json.loads(self.path.read_text(encoding="utf-8"))
 
 
-def _d(v: str | None) -> date | None:
-    return date.fromisoformat(v) if v else None
+def _d(v: str | date | None) -> date | None:
+    """Seed files give ISO strings; feed parsers give date objects."""
+    if not v:
+        return None
+    return v if isinstance(v, date) else date.fromisoformat(v)
 
 
 def ingest(db: Session, connector: FeedConnector) -> int:

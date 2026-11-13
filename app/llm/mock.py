@@ -15,14 +15,20 @@ TECH = [
     "autonomous underwater vehicle", "auv", "sonar", "machine learning", "digital twin", "iot", "sensor",
     "satellite", "remote sensing", "biofouling", "desalination", "hydrogen", "battery", "lidar",
     "computer vision", "acoustic", "robotics", "predictive maintenance", "ai",
+    "5g", "6g", "open ran", "radio access network", "network slicing", "edge computing", "radar",
+    "electronic warfare", "cybersecurity", "air traffic management", "command and control", "unmanned",
+    "artificial intelligence", "antenna",
 ]
 MARKETS = [
     "offshore wind", "aquaculture", "shipping", "maritime", "defence", "ports", "fisheries", "oil and gas",
     "water treatment", "renewable energy", "marine research", "coastal management",
+    "telecommunications", "mobile operators", "aerospace", "aviation", "naval", "public safety",
+    "automotive", "enterprise", "civil security",
 ]
 PLACES = [
     "sweden", "karlskrona", "blekinge", "denmark", "norway", "finland", "germany", "poland", "baltic sea",
     "north sea", "gothenburg", "copenhagen", "malmo", "stockholm", "europe",
+    "linköping", "linkoping", "karlskoga", "kista", "nordic",
 ]
 # tech -> markets a company with that tech plausibly has latent interest in (used for INFERRED items only)
 LATENT = {
@@ -34,6 +40,9 @@ LATENT = {
     "machine learning": ["predictive maintenance"],
     "hydrogen": ["shipping", "renewable energy"],
     "desalination": ["water treatment"],
+    "5g": ["enterprise", "automotive"],
+    "radar": ["civil security", "aviation"],
+    "cybersecurity": ["public safety"],
 }
 PRIORITY_CUES = re.compile(
     r"((?:we are|we're)\s+(?:seeking|looking for|expanding into|hiring)[^.]{3,120}|"

@@ -36,31 +36,38 @@ def _assert_public(host: str) -> None:
             raise FetchError(f"{host} resolves to a non-public address")
 
 
-def check_url(url: str) -> str:
+def check_url(url: str, allowed: list[str] | None = None) -> str:
+    """`allowed` overrides the global allowlist (used by feeds, whose hosts come from trusted config)."""
     s = get_settings()
     p = urlparse(url)
     if p.scheme != "https" or not p.hostname:
         raise FetchError("Only https URLs are allowed")
-    if not _host_allowed(p.hostname, s.fetch_allowed_domains):
+    if not _host_allowed(p.hostname, s.fetch_allowed_domains if allowed is None else allowed):
         raise FetchError(f"Host {p.hostname} is not on the allowlist")
     _assert_public(p.hostname)
     return p.hostname
 
 
 def fetch_text(url: str) -> str:
+    return html_to_text(fetch_raw(url))
+
+
+def fetch_raw(url: str, allowed: list[str] | None = None, max_redirects: int = 3) -> str:
+    """GET with manual redirect handling: every hop is re-validated (https, allowlist, public IP)."""
     s = get_settings()
-    host = check_url(url)
+    current = url
     with httpx.Client(timeout=s.fetch_timeout_seconds, follow_redirects=False) as c:
-        r = c.get(url, headers={"User-Agent": "BlueScienceParkBot/0.1"})
-    if 300 <= r.status_code < 400:
-        loc = urlparse(r.headers.get("location", ""))
-        if loc.hostname and loc.hostname.lower() != host.lower():
-            raise FetchError("Cross-host redirect refused")
-        raise FetchError("Redirects are not followed; use the final URL")
-    r.raise_for_status()
-    if len(r.content) > s.fetch_max_bytes:
-        raise FetchError("Response too large")
-    return html_to_text(r.text)
+        for _ in range(max_redirects + 1):
+            check_url(current, allowed)
+            r = c.get(current, headers={"User-Agent": "BlueScienceParkBot/0.1"})
+            if 300 <= r.status_code < 400 and r.headers.get("location"):
+                current = str(httpx.URL(current).join(r.headers["location"]))
+                continue
+            r.raise_for_status()
+            if len(r.content) > s.fetch_max_bytes:
+                raise FetchError("Response too large")
+            return r.text
+    raise FetchError("Too many redirects")
 
 
 def html_to_text(html: str) -> str:

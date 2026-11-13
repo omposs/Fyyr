@@ -1,0 +1,28 @@
+[
+  {
+    "name": "Interreg South Baltic (news)",
+    "module": "funding",
+    "kind": "rss",
+    "url": "https://southbaltic.eu/feed/",
+    "enabled": true,
+    "verified": false,
+    "include": ["call", "funding", "grant", "project proposals"],
+    "location": "South Baltic region"
+  },
+  {
+    "name": "EXAMPLE: replace with a real Ericsson newsroom feed URL",
+    "module": "news",
+    "kind": "rss",
+    "url": "https://example.com/replace-me.xml",
+    "enabled": false,
+    "verified": false
+  },
+  {
+    "name": "EXAMPLE: replace with a real iCal events calendar URL",
+    "module": "events",
+    "kind": "ical",
+    "url": "https://example.com/replace-me.ics",
+    "enabled": false,
+    "verified": false
+  }
+]

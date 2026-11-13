@@ -30,6 +30,22 @@ Auth is a per-member `X-Member-Token` header (placeholder for real auth/SSO).
     app/sources/fetcher.py      allowlisted, SSRF-safe fetching
     app/llm/                    provider interface, Anthropic provider, offline mock
 
+## Real data
+
+Feeds (events, funding, testbeds, news) are configured in `data/feeds.json`, RSS/Atom and iCal.
+No feed URL there is verified yet: test from a normal network, not the cloud sandbox.
+
+    .venv/bin/python -m app.feeds check     # probe each enabled feed, show which work
+    .venv/bin/python -m app.feeds ingest    # store new items
+
+Edit `feeds.json` to fix or add feeds (`enabled`, `include` keyword filter, `location` default).
+Profile a real company from a page you choose (needs normal internet):
+
+    .venv/bin/python -m app.profile_company "Saab" https://www.saab.com/about
+
+Pages rendered by JavaScript return little text; the command warns when that happens.
+With the offline mock, profiles come from a keyword lexicon (`app/llm/mock.py`) and will be thin.
+
 ## Rules the code enforces
 
 1. Every profile item has `source_url` and `source_date` (`company-edit` for company-authored items).

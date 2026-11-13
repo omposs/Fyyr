@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     chat_rate_limit_per_minute: int = 20
 
     seed_dir: str = "data/seed"
+    feeds_file: str = "data/feeds.json"
 
 
 @lru_cache
