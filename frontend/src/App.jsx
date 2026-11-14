@@ -6,6 +6,8 @@ import SplitText from './reactbits/SplitText.jsx'
 import Grainient from './reactbits/Grainient.jsx'
 import { Dashboard, useSaved, useNotifPrefs, prefsSummary } from './Dashboard.jsx'
 import Logos from './Logos.jsx'
+import LoginModal from './LoginModal.jsx'
+import { navigate, setSession, ROUTES } from './auth.js'
 import { Icon } from './Icons.jsx'
 import { COMPANIES, TOPIC } from './demoData.js'
 
@@ -146,7 +148,16 @@ export default function App() {
     return () => window.removeEventListener('keydown', esc)
   }, [])
 
-  const login = () => notify('Sign-in is not available in this preview.')
+  const [loginOpen, setLoginOpen] = useState(false)
+  const opener = useRef(null)
+  const login = e => { opener.current = e.currentTarget; setLoginOpen(true) }
+  const closeLogin = () => {
+    setLoginOpen(false)
+    // The mobile-menu button is hidden once the menu closes, so fall back to the burger.
+    const el = opener.current?.isConnected && opener.current.offsetParent ? opener.current : document.querySelector('.burger')
+    setTimeout(() => el?.focus(), 0)
+  }
+  const loggedIn = (role, email) => { setSession(role, email); navigate(ROUTES[role]) }
   const sample = COMPANIES[0]
   const sampleInferred = sample.interests.find(i => i.s === 'inferred')
   const [regular, critical] = prefsSummary(np.prefs)
@@ -171,7 +182,7 @@ export default function App() {
         </div>
         <nav id="mnav" aria-label="Mobile" className="mnav" hidden={!menu}>
           {LINKS.map(([l, h]) => <a key={h} href={h} onClick={() => setMenu(false)}>{l}</a>)}
-          <button type="button" className="link-btn" onClick={() => { setMenu(false); login() }}>Log in</button>
+          <button type="button" className="link-btn" onClick={e => { setMenu(false); login(e) }}>Log in</button>
           {contactBtn()}
         </nav>
       </header>
@@ -274,6 +285,8 @@ export default function App() {
         </div>
         <div className="giant" aria-hidden="true">FYYR</div>
       </footer>
+
+      {loginOpen && <LoginModal onClose={closeLogin} onSuccess={loggedIn} />}
 
       <div ref={toastEl} popover="manual" className="toast" role="status" aria-live="polite">
         {toast && <><span>{toast.msg}</span>{toast.label && <button type="button" onClick={() => { toast.fn(); setToast(null) }}>{toast.label}</button>}</>}
