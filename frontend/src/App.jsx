@@ -6,7 +6,7 @@ import Grainient from './reactbits/Grainient.jsx'
 import { Dashboard, useSaved, useNotifPrefs, prefsSummary } from './Dashboard.jsx'
 import Logos from './Logos.jsx'
 import LoginModal from './LoginModal.jsx'
-import { navigate, setSession, ROUTES } from './auth.js'
+import { navigate, setSession, ROUTES, hasDestination, takeDestination, AUTH_MODE } from './auth.js'
 import { Icon } from './Icons.jsx'
 import { COMPANIES, TOPIC } from './demoData.js'
 
@@ -136,13 +136,25 @@ export default function App() {
     return () => { clearTimeout(t1); clearTimeout(t2); window.removeEventListener('load', onLoad); ctx.revert() }
   }, [])
 
+  // Arriving with a #section (a shared link, or navigate('/#about') from another route): the sections only exist once this page has
+  // mounted and laid out, so scroll after mount and once more after late layout shifts (fonts, images). Reduced motion: no smooth scroll.
+  useEffect(() => {
+    const id = decodeURIComponent(location.hash.slice(1))
+    if (!id) return
+    const go = smooth => document.getElementById(id)?.scrollIntoView({ behavior: smooth && !reduceMotion() ? 'smooth' : 'auto', block: 'start' })
+    const t0 = requestAnimationFrame(() => go(false))
+    const t1 = setTimeout(() => go(false), 400)
+    const t2 = setTimeout(() => go(false), 1200)
+    return () => { cancelAnimationFrame(t0); clearTimeout(t1); clearTimeout(t2) }
+  }, [])
+
   useEffect(() => {
     const esc = e => e.key === 'Escape' && setMenu(false)
     window.addEventListener('keydown', esc)
     return () => window.removeEventListener('keydown', esc)
   }, [])
 
-  const [loginOpen, setLoginOpen] = useState(false)
+  const [loginOpen, setLoginOpen] = useState(hasDestination) // opened when a private page sent the visitor here
   const opener = useRef(null)
   const login = e => { opener.current = e.currentTarget; setLoginOpen(true) }
   const closeLogin = () => {
@@ -151,7 +163,7 @@ export default function App() {
     const el = opener.current?.isConnected && opener.current.offsetParent ? opener.current : document.querySelector('.burger')
     setTimeout(() => el?.focus(), 0)
   }
-  const loggedIn = (role, email) => { setSession(role, email); navigate(ROUTES[role]) }
+  const loggedIn = (role, email) => { setSession(role, email); navigate(AUTH_MODE === 'backend' ? takeDestination(role) : ROUTES[role]) }
   const sample = COMPANIES[0]
   const sampleInferred = sample.interests.find(i => i.s === 'inferred')
   const [regular, critical] = prefsSummary(np.prefs)

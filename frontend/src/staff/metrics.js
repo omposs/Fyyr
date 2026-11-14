@@ -172,7 +172,13 @@ export function compute(all, o) {
     return { id: r.id, title: o.title, cat: o.mcat, catLabel: o.mcat && MCATS.find(c => c.id === o.mcat)?.short, deadline: u ? u.label : 'No fixed date', deadlineTs: u ? new Date(u.iso).getTime() : null, demoListing: !!o.demo,
       shown: r.shown, views: r.views, saves: r.saves, clicks: r.clicks, notRel: r.notRel, companies: r.any.size, savesPer100: r.views ? Math.round(r.saves / r.views * 100) : null, hidden: r.any.size < k }
   })
-  const opps = { rows: oppAll.filter(r => !r.hidden), hiddenCount: oppAll.filter(r => r.hidden).length }
+  // Distinct companies reached across the listed opportunities, and engagement per category: both come from the same rows as the table,
+  // so they follow every filter and never disagree with it. Groups below the small-group threshold are withheld.
+  const reachedSet = new Set(); for (const r of O.values()) if (r.any.size >= k) r.any.forEach(c => reachedSet.add(c))
+  const visibleRows = oppAll.filter(r => !r.hidden)
+  const catEng = new Map()
+  for (const r of visibleRows) { const c = catEng.get(r.cat) || catEng.set(r.cat, { id: r.cat, engagement: 0, opps: 0 }).get(r.cat); c.engagement += r.views + r.saves + r.clicks; c.opps++ }
+  const opps = { rows: visibleRows, hiddenCount: oppAll.filter(r => r.hidden).length, reached: reachedSet.size >= k ? reachedSet.size : null, byCat: [...catEng.values()].sort((a, b) => b.engagement - a.engagement) }
 
   // ---------- Blue Science Park's own content ----------
   // Park-owned content is identified by the record's publisherId (member/data.js isPark), never by title. It is a slice of the SAME events
@@ -216,12 +222,6 @@ export function compute(all, o) {
     const inferred = a ? [...a.perCo.entries()].filter(([c, n]) => n >= 3 && !st.has(c)).length : 0
     return { topic: t, stated: st.size, observed: obs.length, inferred }
   }).filter(r => r.stated || r.observed)
-  // combinations of observed topics (>= 3 interactions) per company
-  const pairs = new Map()
-  const perCoTopics = new Map()
-  for (const a of A.values()) for (const [c, n] of a.perCo) if (n >= 3 && a.topic !== UNGROUPED) (perCoTopics.get(c) || perCoTopics.set(c, []).get(c)).push(a.topic)
-  for (const ts of perCoTopics.values()) { ts.sort(); for (let i = 0; i < ts.length; i++) for (let j = i + 1; j < ts.length; j++) { const key = ts[i] + ' + ' + ts[j]; pairs.set(key, (pairs.get(key) || 0) + 1) } }
-  const combos = [...pairs.entries()].map(([pair, n]) => ({ pair, companies: n })).filter(x => x.companies >= Math.max(k, 2)).sort((a, b) => b.companies - a.companies).slice(0, 6)
 
   // ---------- summary ----------
   const topSaved = opps.rows.filter(r => r.saves > 0).sort((a, b) => b.saves - a.saves).slice(0, 3)
@@ -269,7 +269,7 @@ export function compute(all, o) {
 
   // If fewer than k companies were active at all, even network totals would describe a single company: withhold everything.
   const tooSmall = cur.length > 0 && activeCur.size < k
-  return { range, f, k, tooSmall, park, activeCompanies: activeCur.size, cur: cur.length, prev: prev.length, buckets, summary, findings: findings.slice(0, 4), allFindings: findings, topics, activity, growth, unmet, opps, catRows, catSeries, activitySeries, triRows, combos, coverage, stated: stated.size }
+  return { range, f, k, tooSmall, park, activeCompanies: activeCur.size, cur: cur.length, prev: prev.length, buckets, summary, findings: findings.slice(0, 4), allFindings: findings, topics, activity, growth, unmet, opps, catRows, catSeries, activitySeries, triRows, coverage, stated: stated.size }
 }
 
 // A company's own summary, only for companies that opted in (simulated consent).

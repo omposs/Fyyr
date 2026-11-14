@@ -1,0 +1,70 @@
+/* Staff profile page (scoped to .sp*) */
+.sp{gap:18px}
+.sp-id{display:flex;align-items:center;gap:16px;padding:16px 20px;border:1px solid var(--line);border-radius:var(--r);background:linear-gradient(100deg,#eef0ff,#f7f8ff 70%)}
+.sp-av{flex:none;width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--blue);color:#fff;font-size:19px;font-weight:600;letter-spacing:.02em}
+.sp-id-t{min-width:0;display:grid;gap:2px}
+.sp-id-t h2{margin:0;font-size:clamp(20px,2vw,24px);font-weight:600;letter-spacing:-.015em;line-height:1.2}
+.sp-id-t p{margin:0;font-size:15px}
+.sp-id-m{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:4px!important;font-size:13.5px!important;color:var(--muted)}
+.sp-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:stretch}
+.sp-two>.mem-card{align-content:start}
+.sp-dl{margin:0;display:grid}
+.sp-row{display:grid;grid-template-columns:minmax(96px,140px) minmax(0,1fr);gap:12px;align-items:baseline;padding:9px 0;border-top:1px solid var(--line)}
+.sp-row:first-child{border-top:0}
+.sp-row dt{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.sp-row dd{margin:0;font-size:15px;overflow-wrap:anywhere}
+.sp-email{max-width:360px;border-top:1px solid var(--line);padding-top:12px}
+.sp-email .fine{margin:4px 0 0}
+.sp-h{display:flex;align-items:center;gap:10px}.sp-h h2{margin:0}
+.sp-sets{display:grid}
+.sp-set{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.sp-set-i{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:#e4e8fb;color:var(--blue-d)}
+.sp-set-t{display:grid;gap:1px;cursor:pointer;min-width:0}.sp-set-t b{font-size:15px;font-weight:600}.sp-set-t small{font-size:13px;color:var(--muted)}
+.sp-set input{width:22px;height:22px;accent-color:var(--blue);cursor:pointer}
+.sp-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:12px}
+.sp-status{margin:0;font-size:14px;color:var(--muted)}.sp-status.ok{color:var(--lime-ink,#0b6b43);font-weight:500}.sp-status.warn{color:#8a4b05;font-weight:500}
+.sp-foot .btn:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:800px){.sp-two{grid-template-columns:minmax(0,1fr)}.sp-id{padding:14px 16px}.sp-row{grid-template-columns:minmax(0,1fr);gap:2px}}
+
+/* one card, two columns; the email field is a compact footer */
+.sp-card{padding:20px;gap:16px;align-content:start}
+.sp-card .sp-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 32px;align-items:start}
+.sp-col{display:grid;gap:8px;align-content:start;min-width:0}
+.sp-col .mem-side-h{margin:0}
+.sp-col .sp-row{padding:7px 0}
+.sp-card .sp-email{max-width:none;display:grid;grid-template-columns:minmax(0,360px);gap:4px;margin:0;border-top:1px solid var(--line);padding-top:14px}
+.sp-card .sp-email .fine{margin:0}
+.sp-sets .sp-set{padding:8px 0}
+.sp-foot{padding-top:10px}
+.sp.mem-page>.mem-card:not(.sp-card){padding:20px;gap:8px}
+@media(max-width:800px){.sp-card .sp-two{grid-template-columns:minmax(0,1fr);gap:16px}}
+
+/* compact settings page: one 880px column, one vertical Account details list */
+.sp{width:100%;max-width:880px;justify-self:center;gap:16px}
+.sp-card,.sp.mem-page>.mem-card{padding:22px 24px;gap:10px}
+.sp-card .sp-row{grid-template-columns:150px minmax(0,1fr);gap:12px;align-items:center;padding:10px 0}
+.sp-row dt label{font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit}
+.sp-email{display:grid;gap:4px}
+.sp-input{box-sizing:border-box;width:100%;max-width:360px}
+.sp-email .fine,.sp-email .auth-err{margin:0;font-size:13px}
+.sp-note{margin:4px 0 0;font-size:13px;color:var(--muted)}
+.sp-set{grid-template-columns:auto minmax(0,1fr) auto}
+@media(max-width:640px){
+  .sp-card,.sp.mem-page>.mem-card{padding:18px 16px}
+  .sp-card .sp-row{grid-template-columns:minmax(0,1fr);gap:4px;align-items:start}
+  .sp-input{max-width:none}
+}
+.sp-card .sp-email{border-top:0;padding-top:0;max-width:none;grid-template-columns:minmax(0,1fr)}
+.sp-input{min-height:44px;padding:8px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;font:inherit;font-size:15px;color:var(--ink)}
+.sp-input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(43,60,255,.2)}
+.sp-input[aria-invalid=true]{border-color:#b42318}
+.sp.mem-page>.mem-card:not(.sp-card){padding:22px 24px}@media(max-width:640px){.sp.mem-page>.mem-card:not(.sp-card){padding:18px 16px}}
+
+/* member profile: wide row (description) keeps label above value */
+.sp-row.sp-wide{grid-template-columns:minmax(0,1fr);gap:4px}
+.sp-set select.sel{min-width:120px}
+/* same 150px label column in every card (staff profile already uses it) */
+.sp .sp-dl .sp-row{grid-template-columns:150px minmax(0,1fr)}
+.sp .sp-dl .sp-row.sp-wide{grid-template-columns:minmax(0,1fr)}
+@media(max-width:640px){.sp .sp-dl .sp-row{grid-template-columns:minmax(0,1fr)}}
+.sp{box-sizing:border-box;margin-inline:auto}

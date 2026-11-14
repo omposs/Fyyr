@@ -1,0 +1,19 @@
+/* Data and privacy popup only (.dlg-privacy): ~800px wide, fixed header, only the content scrolls. */
+.auth-ov.dlg-privacy{padding:24px 16px}
+.dlg-privacy .dlg-card{width:min(800px,calc(100vw - 32px));max-height:calc(100dvh - 48px);margin:0;padding:0}
+.dlg-privacy .dlg-body{padding:0;display:flex;flex-direction:column;gap:0;overflow:hidden}
+.dlg-privacy .dlg-card>.auth-x{top:18px;right:22px}
+.pv-head{flex:none;padding:22px 32px 14px;border-bottom:1px solid var(--line);background:#fff}
+.pv-head h2{margin:0;padding-right:52px;font-size:clamp(20px,2.4vw,24px)}
+.pv-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:18px 32px 30px;display:grid;gap:10px;align-content:start;font-size:15px;line-height:1.5;overflow-wrap:anywhere;scrollbar-width:thin;scrollbar-color:#c5c9e6 transparent}
+.pv-body>*{margin:0}
+.pv-body .st-h3{margin:14px 0 0}.pv-body .st-h3:first-child{margin-top:0}
+.pv-body .st-plain{list-style:disc;padding-left:22px;gap:6px;font-size:15px}
+.pv-body .st-plain li{padding-left:2px}
+.pv-body .st-tblwrap{max-width:100%;overflow-x:auto}
+@media(max-width:640px){
+  .auth-ov.dlg-privacy{padding:16px}
+  .pv-head{padding:18px 20px 12px}
+  .pv-body{padding:16px 20px 24px}
+  .dlg-privacy .dlg-card>.auth-x{right:14px;top:14px}
+}

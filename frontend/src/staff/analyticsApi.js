@@ -13,7 +13,7 @@ export class AccessError extends Error {}
 const assertStaff = () => { if (getSession()?.role !== 'staff') throw new AccessError('Staff access required') }
 
 export const SOURCES = [
-  ['demo', 'Simulated sample', 'Generated demo data: 14 fictional companies, 180 days. Not real member activity.'],
+  ['demo', 'Simulated sample', 'Generated demo data: 14 real Blue Science Park member companies with simulated activity, 180 days. No real company did any of it.'],
   ['live', 'Recorded in this browser', 'Events recorded when someone uses the member area in this browser. Demo session, one company.'],
 ]
 

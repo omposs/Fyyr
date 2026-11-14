@@ -16,7 +16,7 @@ export const INVITES_TRACKED = delivery.connected
 
 export function parkCatalogue() {
   const seeded = MEMBER_OPPS.filter(o => isPark(o) && !o.staffEvent).map(o => ({ id: o.id, title: o.title, mcat: o.mcat, status: 'published', date: o.start || '', demo: !!o.demo }))
-  const created = listEvents().filter(e => e.source !== 'member').map(e => ({ id: e.id, title: e.title || 'Untitled', mcat: CATEGORIES[e.category || 'events'].mcat, status: e.status, date: e.date || '', demo: false }))
+  const created = listEvents().filter(e => e.source !== 'member').map(e => ({ id: e.id, title: e.title || 'Untitled', mcat: CATEGORIES[e.category || 'events'].mcat, status: e.status, date: e.date || '', demo: !!e.demoSeed }))
   return [...seeded, ...created]
 }
 export const STATUS_LABEL = { published: 'Published', draft: 'Draft', archived: 'Archived' }

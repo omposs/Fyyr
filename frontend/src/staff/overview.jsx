@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react'
+import { useId, useLayoutEffect, useMemo, useState } from 'react'
 import { Icon } from '../Icons.jsx'
 import { navigate } from '../auth.js'
 import { Dialog } from '../member/ui.jsx'
@@ -7,10 +7,12 @@ import { NOT_CONNECTED, parkCatalogue, parkSummary } from './park.js'
 import { demoCompany } from './analyticsApi.js'
 import { fmtDY, growthDetail } from './metrics.js'
 import { STATUSES } from './store.js'
-import { Finding } from './pages.jsx'
 import { CO, SCOPE_LABEL, overviewPicks, scopeOf, suggestionStatus } from '../network/data.js'
 import { CompareDialog, SaveBtn } from '../network/NetworkPage.jsx'
 import { useSaved } from '../network/store.js'
+import { topicColor, tint } from './colors.js'
+import { NeedsAttention, PerfChart, vsBefore } from './perf.jsx'
+import { ConnectCards } from './connect.jsx'
 
 const plural = (n, a, b) => `${n} ${n === 1 ? a : b}`
 const dayFmt = ts => new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
@@ -54,18 +56,19 @@ function GrowDialog({ row, src, d, onClose }) {
       <SimpleTable caption="Signals on this topic" head={['Signal', 'This period', 'Previous period']} rows={det.signals} />
       <p className="fine">Aggregate counts only. No individual search history is shown.</p>
       <h3 className="mem-sec st-h3">Over time</h3>
-      <LineChart title={`Companies active on ${row.topic}`} labels={det.labels} series={[det.series[0]]} xLabel={det.unit === 'day' ? 'Day' : 'Week starting'} yLabel="Companies" height={190} />
+      <LineChart title={`Companies active on ${row.topic}`} labels={det.labels} series={[{ ...det.series[0], color: topicColor(row.topic) }]} xLabel={det.unit === 'day' ? 'Day' : 'Week starting'} yLabel="Companies" height={190} />
       <div className="auth-row"><button type="button" className="btn btn-glass btn-sm" onClick={onClose}>Close</button><button type="button" className="btn btn-primary btn-sm" onClick={() => { onClose(); navigate('/staff/insights') }}>Open Member insights</button></div>
     </Dialog>
   )
 }
 
-function Growing({ d }) {
+function Growing({ d, onRows }) {
   const [src, setSrc] = useState('stated')
   const [open, setOpen] = useState(null)
   const rows = d.res.growth[src].slice(0, 5)
   const max = Math.max(1, ...rows.map(r => Math.max(r.cur, r.prev)))
   const uid = useId()
+  useLayoutEffect(() => { onRows?.(rows.length) }, [rows.length]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <Section id={uid} title="What interests are growing?" sub={`Topics with the largest rise in distinct companies. Each company counts once per topic. ${src === 'stated' ? 'Saved interests are what companies selected in their profile.' : 'Activity is searches, views, saves and source clicks: behaviour, not a stated priority.'} The two sources are never combined.`}
       more={<div className="eseg ov-src" role="group" aria-label="Source of interest">
@@ -80,8 +83,8 @@ function Growing({ d }) {
                 <button type="button" className="ov-bar-t" onClick={() => setOpen(r)} aria-label={`${r.topic}: ${plural(r.cur, 'company', 'companies')}, up ${r.abs} from ${r.prev}. Open details.`}>
                   <b>{r.topic}</b> · {plural(r.cur, 'company', 'companies')} · <b className="ov-up">+{r.abs}</b>
                 </button>
-                <span className="ov-track">
-                  <i tabIndex={0} aria-label={`Current: ${plural(r.cur, 'company', 'companies')}, ${d.ctx.range.label}`} style={{ width: `${(r.cur / max) * 100}%` }}><span className="ov-tip" role="tooltip">{r.cur} · {d.ctx.range.label}</span></i>
+                <span className="ov-track" style={{ background: tint(topicColor(r.topic)) }}>
+                  <i tabIndex={0} aria-label={`Current: ${plural(r.cur, 'company', 'companies')}, ${d.ctx.range.label}`} style={{ width: `${(r.cur / max) * 100}%`, background: topicColor(r.topic) }}><span className="ov-tip" role="tooltip">{r.cur} · {d.ctx.range.label}</span></i>
                   <u tabIndex={0} aria-label={`Previous: ${plural(r.prev, 'company', 'companies')}, ${d.ctx.range.prevLabel}`} style={{ left: `${(r.prev / max) * 100}%` }}><span className="ov-tip" role="tooltip">{r.prev} · {d.ctx.range.prevLabel}</span></u>
                 </span>
                 {r.abs < 3 && <span className="ov-bar-s">Small change, not a trend</span>}
@@ -158,57 +161,29 @@ function Unmet({ d }) {
 }
 
 // ---------- 3. companies worth connecting ----------
-function Connect({ d }) {
-  const net = useSaved()
-  const [cmp, setCmp] = useState(null)
-  // A few pairs: one inside Blue Science Park, others across ecosystems; never padded. Internal and cross-park suggestions are both eligible.
-  const top = useMemo(() => overviewPicks(3), [])
-  const uid = useId()
-  return (
-    <Section real id={uid} title="Companies worth connecting" more={<ViewAll to="/staff/network">View all</ViewAll>}>
-      {top.length ? (
-        <ul className="ov-conn">
-          {top.map(s => {
-            const a = CO[s.a], b = CO[s.b], name = `${a.name} and ${b.name}`
-            return (
-              <li key={s.id} className="ov-cn">
-                <div className="ov-cn-main">
-                  <p className="ov-cn-t"><b>{a.name}</b> <span aria-hidden="true">↔</span><span className="sr"> and </span> <b>{b.name}</b></p>
-                  <p className="ov-cn-s"><span>{SCOPE_LABEL[scopeOf(s)]}</span><span className={s.isDemo ? "pill nw-demo" : "nw-verify"}>{suggestionStatus(s)}</span></p>
-                  <p className="ov-cn-r">{s.why}</p>
-                </div>
-                <div className="ov-cn-a">
-                  <button type="button" className="btn btn-glass btn-sm" onClick={() => setCmp(s)}>View details<span className="sr">: {name}</span></button>
-                  <SaveBtn s={s} store={net} name={name} />
-                </div>
-              </li>
-            )
-          })}
-        </ul>
-      ) : <div className="mem-empty"><strong>No supported suggestions yet</strong><p>Suggestions appear here only when public sources support a reason to connect and both park affiliations are confirmed.</p></div>}
-      <p className="fine">Inferred from public pages read 13–14 Nov 2026, so the date range above does not change these. A small sample, not the whole network.</p>
-      {cmp && <CompareDialog s={cmp} store={net} onClose={() => setCmp(null)} />}
-    </Section>
-  )
-}
 
 // ---------- Blue Science Park's own performance: a summary of the Our performance page, same figures ----------
 function ParkPerformance({ d }) {
   const p = d.res.park
   const uid = useId()
-  const sum = useMemo(() => parkSummary(parkCatalogue()), [d.events, d.res])
+  const sum = useMemo(() => parkSummary(parkCatalogue()), [d.events, d.res, d.synced])
   const hide = d.res.tooSmall
-  const tip = `Views ${p.views} · Saves ${p.saves} · Source clicks ${p.clicks}`
   return (
     <Section id={uid} title="Blue Science Park performance" more={<ViewAll to="/staff/ours">View all statistics</ViewAll>}>
-      <div className="ov-park">
-        <dl className="ov-kpis">
-          <div><dt>Published opportunities</dt><dd>{sum.published}</dd></div>
-          <div><dt>Engagement <span className="ov-tipk" tabIndex={0} title={tip} aria-label={`Engagement is views, saves and source clicks. ${tip}`}>ⓘ</span></dt><dd>{hide ? '—' : p.engagement}</dd></div>
-          <div><dt>Confirmed registrations</dt><dd className="st-nc">{NOT_CONNECTED}</dd></div>
-        </dl>
-        {!hide && <LineChart title="Blue Science Park engagement" labels={p.labels} series={[{ id: 'a', name: 'Engagement', points: p.series }]} xLabel={d.res.buckets.unit === 'day' ? 'Day' : 'Week starting'} yLabel="Events" height={190} />}
-      </div>
+      <dl className="pf-kpis">
+        <div><dt>Published opportunities</dt><dd>{sum.published}</dd></div>
+        <div><dt>Interactions</dt><dd>{hide ? '—' : p.engagement}</dd>{!hide && <small>{vsBefore(p.engagement, p.prev.engagement)}</small>}</div>
+        <div><dt>Companies reached</dt><dd>{hide ? '—' : p.companies}</dd></div>
+      </dl>
+      {!hide && <PerfChart title="Blue Science Park interactions" labels={p.labels} points={p.series} name="Interactions" xLabel={d.res.buckets.unit === "day" ? "Day" : "Week starting"} height={190} />}
+    </Section>
+  )
+}
+function Attention({ d }) {
+  const uid = useId()
+  return (
+    <Section id={uid} title="Needs attention" sub="Items come from the opportunity records and the same activity as the statistics. Rules: a draft with every required detail filled in is ready to review; a published opportunity with a deadline in the next 14 days; an opportunity with at least 8 views, fewer than 10 saves per 100 views and 3 or more companies.">
+      <NeedsAttention d={d} />
     </Section>
   )
 }
@@ -224,19 +199,18 @@ function Notice({ d }) {
 export function Overview({ d }) {
   const c = d.res.coverage
   const note = Notice({ d })
-  const other = d.res.allFindings
+  const [nGrow, setNGrow] = useState(0)
+  // Both insight cards share the same item-row tracks (CSS subgrid): one row per item, as many as the longer list needs.
+  const rowsN = Math.max(1, nGrow, Math.min(5, d.res.unmet.rows.length))
   return (
     <div className="mem-page ov">
-      <ParkPerformance d={d} />
+      <div className="pf-ov">
+        <ParkPerformance d={d} />
+        <Attention d={d} />
+      </div>
       <h2 className="ov-grp">Member &amp; network insights</h2>
-      <div className="ov-two">{note || <><Growing d={d} /><Unmet d={d} /></>}</div>
-      <Connect d={d} />
-      {other.length > 0 && !note && (
-        <details className="ov-more">
-          <summary>Other findings ({other.length})</summary>
-          <ul className="st-finds">{other.map(fd => <Finding key={fd.id} fd={fd} d={d} />)}</ul>
-        </details>
-      )}
+      <div className="ov-two" style={{ '--n': rowsN }}>{note || <><Growing d={d} onRows={setNGrow} /><Unmet d={d} /></>}</div>
+      <ConnectCards />
       <p className="fine">Definitions and what is not tracked: <a href="/staff/reports" onClick={e => { e.preventDefault(); navigate('/staff/reports') }}>Reports</a> and Data and privacy.</p>
     </div>
   )

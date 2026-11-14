@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 
 from app.api.auth import admin_router, router as auth_router
+from app.api.public import admin_public_router, public_router
 from app.api.routes import router
 from app.config import get_settings
 from app.db import init_db
@@ -34,6 +35,8 @@ app.add_middleware(CORSMiddleware, allow_origins=get_settings().cors_origins, al
 app.include_router(auth_router)
 app.include_router(admin_router)
 app.include_router(router)
+app.include_router(public_router)
+app.include_router(admin_public_router)
 
 
 @app.get("/health", tags=["meta"])

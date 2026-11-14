@@ -1,0 +1,25 @@
+/* Science park accents (scoped to .park-b / .park-mark). UI accents only. */
+.park-b{--pb:#eef0f8;--pf:#4b5266;--pd:#8b93a8;display:inline-flex;align-items:center;gap:6px;max-width:100%;font-size:12.5px;font-weight:600;line-height:1.3;padding:2px 10px 2px 8px;border-radius:99px;background:var(--pb);color:var(--pf);white-space:nowrap}
+.park-b i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--pd)}
+.park-b[data-tone=blue],.park-v[data-tone=blue]{--pb:#e6ebff;--pf:#1f2fb8;--pd:#2b3cff}
+.park-b[data-tone=purple],.park-v[data-tone=purple]{--pb:#efe9fd;--pf:#5a2fc2;--pd:#7a5af8}
+.park-b[data-tone=teal],.park-v[data-tone=teal]{--pb:#dcf5f1;--pf:#0b6b60;--pd:#0e9f8e}
+.park-b[data-tone=amber],.park-v[data-tone=amber]{--pb:#fdf0d5;--pf:#8a4b05;--pd:#d97706}
+.park-b[data-tone=rose],.park-v[data-tone=rose]{--pb:#fde6ee;--pf:#a3194d;--pd:#d6336c}
+.nw-mark[data-tone=blue]{background:#e6ebff;color:#1f2fb8}.nw-mark[data-tone=purple]{background:#efe9fd;color:#5a2fc2}.nw-mark[data-tone=teal]{background:#dcf5f1;color:#0b6b60}.nw-mark[data-tone=amber]{background:#fdf0d5;color:#8a4b05}.nw-mark[data-tone=rose]{background:#fde6ee;color:#a3194d}
+.nw-co-line{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:3px}
+.nw-co-line small{font-size:12.5px;color:var(--muted)}
+.park-v{--pb:#eef0f8;--pf:#4b5266}
+/* Companies tab */
+.co-nm{display:flex;align-items:center;gap:10px;min-width:0}
+.co-av{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--pb);color:var(--pf)}
+.co-tags{display:flex;flex-wrap:wrap;gap:4px}
+.co-tag{display:inline-block;font-size:12.5px;line-height:1.35;padding:1px 9px;border-radius:8px;background:#f1f3fb;color:#3b4258;white-space:nowrap}
+.co-tag.int{background:#eef0ff;color:#2f3fb0}.co-tag.more{background:transparent;color:var(--muted);padding:1px 4px}
+.co-status{display:inline-block;font-size:12.5px;padding:1px 8px;border:1px solid var(--line);border-radius:6px;background:#fff;color:#3b4258;white-space:nowrap}
+.st-co .st-tbl tbody tr:focus-within{background:#f7f8ff}
+.st-co .st-tbl td{vertical-align:middle}
+.st-co .st-tbl th,.st-co .st-tbl td{padding:8px 10px}
+.st-co .co-tag{white-space:normal}
+.st-co .st-tblwrap{overflow-x:auto}
+.st-co .st-tbl{font-size:14px}.st-co .park-b{white-space:normal}.st-co .co-status{white-space:normal}

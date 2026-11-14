@@ -8,10 +8,10 @@ const write = v => { try { localStorage.setItem(KEY, JSON.stringify(v)); return 
 
 // Identity and organisation are fixed and read-only. Job title has no staff-specific value on record, so it stays "Not specified".
 export const STAFF_LOCKED = {
-  name: 'Stefan Ungureanu', initials: 'SU', organisation: 'Blue Science Park', role: 'Staff', office: 'Karlskrona, Sweden', title: 'Head of Operations',
+  name: 'Erik Andersson', initials: 'EA', organisation: 'Blue Science Park', role: 'Staff', office: 'Karlskrona, Sweden', title: 'Head of Operations',
 }
 export const STAFF_EDITABLE = ['email', 'notify']
-const DEFAULTS = { email: 'stefanu@bsp.se', notify: { attention: true, shared: true } }
+const DEFAULTS = { email: 'erik.andersson@bsp.se', notify: { attention: true, shared: true } }
 
 export function useStaffProfile() {
   const [saved, setSaved] = useState(read)

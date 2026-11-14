@@ -34,10 +34,10 @@ export function AccountLink({ initials, name, org, href, onGo }) {
 }
 
 // Controls row inside the content area. Left: filters and search. Right: page actions. Render nothing when both are empty.
-export function Toolbar({ left, right }) {
+export function Toolbar({ left, right, className }) {
   if (!left && !right) return null
   return (
-    <div className="app-tb">
+    <div className={className ? `app-tb ${className}` : 'app-tb'}>
       {left ? <div className="app-tb-l">{left}</div> : null}
       {right ? <div className="app-tb-r">{right}</div> : null}
     </div>

@@ -1,4 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { CAT_COLOR } from '../staff/colors.js'
+import './extras.css'
 import { Icon } from '../Icons.jsx'
 import { fmt } from '../demoData.js'
 import { INTERESTS, MCAT, normInterest, strengthLabel, HUB_LABEL, hubKind } from './data.js'
@@ -40,7 +42,7 @@ export function Dialog({ label, onClose, side, wide, xwide, cls, children }) {
   )
 }
 
-export function InterestsEditor({ current, onSave, onClose }) {
+export function InterestsEditor({ current, onSave, onClose, busy, error }) {
   const uid = useId()
   const [sel, setSel] = useState(current)
   const [q, setQ] = useState('')
@@ -76,11 +78,12 @@ export function InterestsEditor({ current, onSave, onClose }) {
         {chips.map(s => <button key={s} type="button" className="fchip" aria-pressed={has(s)} onClick={() => toggle(s)}>{s}</button>)}
         {!chips.length && <p className="fine">No suggestions match. {canAdd && 'Press Add to create your own.'}</p>}
       </div>
+      {error && <p className="auth-err" role="alert">{error}</p>}
       <div className="auth-row int-foot">
         <span className="fine int-count">{sel.length} selected</span>
         <span className="int-btns">
         <button type="button" className="btn btn-glass btn-sm" onClick={onClose}>Cancel</button>
-        <button type="button" className="btn btn-primary btn-sm" onClick={() => onSave(sel)}>Save interests</button>
+        <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={() => onSave(sel)}>{busy ? 'Saving…' : 'Save interests'}</button>
         </span>
       </div>
     </Dialog>
@@ -88,6 +91,7 @@ export function InterestsEditor({ current, onSave, onClose }) {
 }
 
 // ---- shared bits ----
+const cc = o => ({ '--cc': CAT_COLOR[o.mcat] })
 const initialsOf = t => t.replace(/^(dr|prof).?s+/i, '').split(/[s,]+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()
 // Neutral initials for people and company listings: never a photo or logo, so a fictional person is not mistaken for a real one.
 const Avatar = ({ o }) => (o.mcat === 'people' ? <span className="mem-av opp-av" aria-hidden="true">{initialsOf(o.title)}</span> : null)
@@ -119,7 +123,7 @@ export const Primary = ({ x, c }) => (x.o.url
 export function TopCard({ x, c }) {
   const { o } = x
   return (
-    <li className="mem-tcard">
+    <li className="mem-tcard cc" style={cc(o)}>
       <div className="mem-tc-top"><span className="ocat"><Icon n={MCAT[o.mcat].icon} size={15} />{MCAT[o.mcat].short}</span>{o.demo && <span className="pill">Demo</span>}<AudienceChips o={o} /></div>
       <h3 className="mem-h"><button type="button" className="mem-title" onClick={() => c.openDetail(o.id)}>{o.title}</button></h3>
       <p className="sum clamp">{o.summary}</p>
@@ -139,7 +143,7 @@ export function TopCard({ x, c }) {
 export function OppCard({ x, c, expired }) {
   const { o } = x
   return (
-    <li className="opp">
+    <li className="opp cc" style={cc(o)}>
       <div className="opp-top"><span className="ocat"><Icon n={MCAT[o.mcat].icon} size={16} />{MCAT[o.mcat].label}</span>{expired ? <span className="pill">Expired</span> : <Strength x={x} />}{o.demo && <span className="pill">Demo</span>}<AudienceChips o={o} /></div>
       <h3 className="mem-h opp-h"><Avatar o={o} /><button type="button" className="mem-title lg" onClick={() => c.openDetail(o.id)}>{o.title}</button></h3>
       <p className="sum">{o.summary}</p>
@@ -148,8 +152,8 @@ export function OppCard({ x, c, expired }) {
       <div className="opp-foot">
       <div className="opp-meta">{expired ? <span className="when">No longer open</span> : <DateLine x={x} />}{o.where && <span className="where">{o.where}</span>}</div>
       <div className="opp-actions">
-        {!expired && <Primary x={x} c={c} />}
-        <button type="button" className="btn btn-glass btn-sm" onClick={() => c.openDetail(o.id)}>View details</button>
+        {!expired && o.url && !c.pub && <Primary x={x} c={c} />}
+        <button type="button" className={'btn btn-sm ' + (!expired && (!o.url || c.pub) ? 'btn-primary' : 'btn-glass')} onClick={() => c.openDetail(o.id)}>View details<span className="sr">: {o.title}</span></button>
         {expired
           ? <button type="button" className="btn btn-glass btn-sm" onClick={() => c.toggleSaved(o.id)}>Remove</button>
           : <SaveBtn o={o} c={c} />}
@@ -172,11 +176,12 @@ export function Detail({ x, c, onClose }) {
     <Dialog label={o.title} onClose={onClose} side>
       <SponsorRow items={o.sponsors} />
       {o.cover && <img className="det-cover" src={o.cover} alt="" />}
-      <p className="opp-top"><span className="ocat"><Icon n={MCAT[o.mcat].icon} size={16} />{MCAT[o.mcat].label}</span>{x.live ? <Strength x={x} all /> : <span className="pill">Expired</span>}{o.demo && <span className="pill">Demo</span>}<AudienceChips o={o} /></p>
+      <p className="opp-top cc" style={cc(o)}><span className="ocat"><Icon n={MCAT[o.mcat].icon} size={16} />{MCAT[o.mcat].label}</span>{x.live ? <Strength x={x} all /> : <span className="pill">Expired</span>}{o.demo && <span className="pill">Demo</span>}<AudienceChips o={o} /></p>
       <h2 className="auth-h det-h opp-h"><Avatar o={o} />{o.title}</h2>
       <p className="sum">{o.description || o.summary}</p>
-      {x.live && x.reasons.length > 0 && <div className="why"><b>Why this matches you</b><ul>{x.reasons.map(r => <li key={r}>{r}</li>)}</ul></div>}
-      {x.live && !x.reasons.length && <p className="fine">No match with your profile yet. <button type="button" className="auth-link inline" onClick={() => { onClose(); c.openInterests() }}>Add interests to personalise</button></p>}
+      {c.pub && <p className="fine">Public results are not personalised.</p>}
+      {!c.pub && x.live && x.reasons.length > 0 && <div className="why"><b>Why this matches you</b><ul>{x.reasons.map(r => <li key={r}>{r}</li>)}</ul></div>}
+      {!c.pub && x.live && !x.reasons.length && <p className="fine">No match with your profile yet. <button type="button" className="auth-link inline" onClick={() => { onClose(); c.openInterests() }}>Add interests to personalise</button></p>}
       <dl className="det">
         <Field k="Organiser / provider">{o.provider}</Field>
         <Field k="Dates">{dates.length ? dates.map(d => <span key={d} className="det-l">{d}</span>) : null}</Field>
@@ -204,7 +209,7 @@ export function Detail({ x, c, onClose }) {
           ? <a className="btn btn-primary btn-sm" href={o.url} target="_blank" rel="noopener noreferrer" onClick={() => c.trackSource(o.id)}>{o.next}<Icon n="ext" size={15} /></a>
           : <button type="button" className="btn btn-primary btn-sm" onClick={() => setNote('Demo only: this is a fictional listing, so nothing was sent.')}>{o.next}</button>)}
         {x.live ? <SaveBtn o={o} c={c} /> : <button type="button" className="btn btn-glass btn-sm" onClick={() => c.toggleSaved(o.id)}>{c.saved.includes(o.id) ? 'Remove from saved' : 'Save'}</button>}
-        {x.live && <button type="button" className="btn btn-quiet btn-sm" onClick={() => { c.markNotRelevant(o.id); setNote('Thanks, noted. This does not change your profile.') }}>Not relevant</button>}
+        {x.live && !c.pub && <button type="button" className="btn btn-quiet btn-sm" onClick={() => { c.markNotRelevant(o.id); setNote('Thanks, noted. This does not change your profile.') }}>Not relevant</button>}
       </div>
     </Dialog>
   )
@@ -214,7 +219,7 @@ export function Detail({ x, c, onClose }) {
 export function ParkRow({ x, c }) {
   const { o } = x
   return (
-    <li className="mem-park-row">
+    <li className="mem-park-row cc" style={cc(o)}>
       <div className="mem-tc-top"><span className="ocat"><Icon n={MCAT[o.mcat].icon} size={15} />{HUB_LABEL[hubKind(o)]}</span><span className="mem-org">Organised by Blue Science Park</span>{o.demo && <span className="pill">Demo</span>}</div>
       <h3 className="mem-h"><button type="button" className="mem-title" onClick={() => c.openDetail(o.id)}>{o.title}</button></h3>
       <p className="sum clamp">{o.summary}</p>

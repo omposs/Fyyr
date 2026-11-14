@@ -2,6 +2,9 @@ import { useSyncExternalStore } from 'react'
 import { canEdit, canManageAudience, isMemberEvent } from './access.js'
 import { notifyShared } from './notify.js'
 import { CATEGORIES, defaultsFor, visibleFields } from './categories.js'
+import { getContentMode } from '../data/mode.js'
+import { getSession } from '../auth.js'
+import { FIXTURE_IDS, FIXTURE_PREFIX, SAAB_FIXTURES, SAAB_OWNER } from '../data/fixtures/saabOpportunities.js'
 
 // ---- Staff-created events (draft / published). Stored in this browser; the same shape fits a server table. ----
 const KEY = 'fyyr.staff.events.v1'
@@ -16,20 +19,86 @@ export const DEFAULT_AUDIENCE = { companies: [], interests: [], categories: [], 
 const EMPTY_ACCESS = { companies: [], members: [] }
 export const norm = e => ({ category: 'events', x: {}, details: '', industries: [], contact: '', source: 'staff', publisherId: '', owner: null, visibility: 'public', shareWithBsp: false, shareNotifiedAt: null, audit: [], ...e, access: { ...EMPTY_ACCESS, ...(e.access || {}) } })
 
-let raw = null, cache = []
+// ============================================================================================
+// The event list = stored records + (demo content mode only) the committed Saab fixtures (data/fixtures/saabOpportunities.js).
+//   baseline   the fixtures, built fresh from relative dates; never copied into storage, so nothing can erase them
+//   overrides  a fixture the user edited or re-statused is stored here, PER ACCOUNT, and wins over the baseline by id
+//   deleted    a fixture the user deleted on purpose is remembered here, per account (clearing these keys restores the baseline)
+// Merged by stable id, so there are never duplicates. Live content mode never lists fixtures and never writes their overrides.
+// ============================================================================================
+const OVR_KEY = 'fyyr.demo.overrides.v1' // { [account]: { [fixtureId]: record } }
+const DEL_KEY = 'fyyr.demo.deleted.v1' // { [account]: [fixtureId] }
+const ls = k => { try { return localStorage.getItem(k) } catch { return null } }
+const parse = (t, d) => { try { const v = JSON.parse(t); return v && typeof v === 'object' ? v : d } catch { return d } }
+const account = () => String(getSession()?.email || '').trim().toLowerCase()
+const isFixtureId = id => FIXTURE_IDS.has(id)
+const stable = v => JSON.stringify(v, (k, x) => (x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map(y => [y, x[y]])) : x))
+const strip = e => { const { updated, publishedAt, ...rest } = e; return rest } // eslint-disable-line no-unused-vars
+const differs = (e, b) => !b || stable(strip(e)) !== stable(strip(b))
+
+function buildFixture(spec, stamp) {
+  const { slug, rel = {}, rich = [], ...rest } = spec
+  const base = blankEvent({ category: spec.category, x: spec.x ? { ...spec.x } : undefined })
+  const rec = {
+    ...base, ...rest, id: FIXTURE_PREFIX + slug, rich, organiser: null, sponsors: [], source: 'member', owner: { ...SAAB_OWNER }, demoMember: true,
+    access: { companies: [], members: [] }, audit: [], shareWithBsp: false, shareNotifiedAt: null, publisherId: '', created: stamp, updated: stamp,
+    x: { ...base.x, ...(spec.x || {}) },
+  }
+  const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
+  if (spec.category === 'events') { rec.date = rel.date != null ? day(rel.date) : ''; rec.regDeadline = rel.regDeadline != null ? day(rel.regDeadline) : '' }
+  if (spec.category === 'funding' && rel.deadline != null) rec.x.deadline = day(rel.deadline)
+  if (spec.category === 'testing' && rel.availFrom != null) { rec.x.availFrom = day(rel.availFrom); rec.x.availTo = day(rel.availTo) }
+  if (spec.category === 'knowledge' && rel.pubDate != null) rec.x.pubDate = day(rel.pubDate)
+  if (rec.status !== 'draft') rec.publishedAt = stamp
+  return norm(rec)
+}
+let fxDay = null, fxList = []
+function fixtures() { // rebuilt once per calendar day, so relative dates move with the demo clock
+  const t = todayIso()
+  if (t !== fxDay) { const stamp = new Date(t + 'T09:00:00').getTime() - 6 * 864e5; fxList = SAAB_FIXTURES.map(s => buildFixture(s, stamp)); fxDay = t }
+  return fxList
+}
+
+let sig = null, cache = []
 const subs = new Set()
 function read() {
-  let r = null
-  try { r = localStorage.getItem(KEY) } catch { /* private mode */ }
-  if (r !== raw) { raw = r; try { const v = JSON.parse(r); cache = Array.isArray(v) ? v.map(norm) : [] } catch { cache = [] } }
+  const k = [ls(KEY), ls(OVR_KEY), ls(DEL_KEY), getContentMode(), account(), todayIso()]
+  if (sig && k.every((v, i) => v === sig[i])) return cache
+  sig = k
+  const demo = k[3] === 'demo', who = k[4]
+  const stored = parse(k[0], []), list = Array.isArray(stored) ? stored.map(norm) : []
+  const ov = Object.values(parse(k[1], {})[who] || {}).map(norm)
+  const ovIds = new Set(ov.map(e => e.id)), del = new Set(parse(k[2], {})[who] || [])
+  const seen = new Set(), out = []
+  const add = e => { if (!seen.has(e.id)) { seen.add(e.id); out.push(e) } }
+  for (const e of list) if (!ovIds.has(e.id) && !(isFixtureId(e.id) && del.has(e.id)) && (demo || !e.demoMember)) add(e)
+  if (demo) { ov.forEach(e => { if (!del.has(e.id)) add(e) }); fixtures().forEach(e => { if (!del.has(e.id)) add(e) }) }
+  cache = out
   return cache
 }
 function write(list) {
-  const s = JSON.stringify(list)
-  try { localStorage.setItem(KEY, s) } catch { throw new Error('Could not save: browser storage is full. Remove a cover image or logo.') }
-  raw = s; cache = list; subs.forEach(f => f())
+  const demo = getContentMode() === 'demo', who = account()
+  let main = list.filter(e => !isFixtureId(e.id))
+  const ovAll = parse(ls(OVR_KEY), {}), delAll = parse(ls(DEL_KEY), {})
+  if (demo) {
+    const base = new Map(fixtures().map(f => [f.id, f]))
+    const fix = list.filter(e => isFixtureId(e.id))
+    ovAll[who] = Object.fromEntries(fix.filter(e => differs(e, base.get(e.id))).map(e => [e.id, e]))
+    delAll[who] = [...base.keys()].filter(id => !fix.some(e => e.id === id)) // absent from the list = deleted on purpose
+  } else {
+    const prev = parse(ls(KEY), []) // live mode neither lists nor changes fixture-related data: keep whatever is stored
+    main = [...main, ...(Array.isArray(prev) ? prev.filter(e => isFixtureId(e.id)) : [])]
+  }
+  try {
+    localStorage.setItem(KEY, JSON.stringify(main))
+    if (demo) { localStorage.setItem(OVR_KEY, JSON.stringify(ovAll)); localStorage.setItem(DEL_KEY, JSON.stringify(delAll)) }
+  } catch { throw new Error('Could not save: browser storage is full. Remove a cover image or logo.') }
+  sig = null
+  subs.forEach(f => f())
 }
-window.addEventListener('storage', e => { if (e.key === KEY) subs.forEach(f => f()) })
+const notifyAll = () => { sig = null; subs.forEach(f => f()) }
+window.addEventListener('storage', e => { if ([KEY, OVR_KEY, DEL_KEY].includes(e.key)) notifyAll() })
+window.addEventListener('fyyr:content-mode', notifyAll)
 const subscribe = f => { subs.add(f); return () => subs.delete(f) }
 export const useStaffEvents = () => useSyncExternalStore(subscribe, read)
 export const listEvents = read

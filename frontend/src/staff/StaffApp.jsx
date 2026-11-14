@@ -1,9 +1,14 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Icon } from '../Icons.jsx'
-import { clearSession, getSession, navigate } from '../auth.js'
+import NotifMenu from '../shell/NotifMenu.jsx'
+import { getSession, navigate, signOut } from '../auth.js'
+import ModeSwitch from '../shell/ModeSwitch.jsx'
+import { SimNote } from './perf.jsx'
+import { seedDemoWorkflow } from '../events/demoWorkflow.js'
 import { MCATS, SECTORS } from '../member/data.js'
 import { Dialog } from '../member/ui.jsx'
 import '../member/member.css'
+import './privacy.css'
 import './staff.css'
 import { AccessError, SOURCES, demoCompany, loadEvents, sharedCompanies } from './analyticsApi.js'
 import { EVENTS_CHANGED, clearLive } from './events.js'
@@ -19,7 +24,7 @@ import { useStaffProfile } from './profileStore.js'
 import NetworkPage from '../network/NetworkPage.jsx'
 import { useSyncedEvents } from '../events/sync.js'
 import { viewerFromSession } from '../events/access.js'
-import { useNotifications } from '../events/notify.js'
+import { ICON, ago, seedDemoNotifications, useAccountNotifications } from '../events/notifications.js'
 
 const NAV = [
   { id: 'overview', label: 'Overview', icon: 'layers' },
@@ -154,8 +159,9 @@ function PrivacyDialog({ d, onClose }) {
   const c = d.res.coverage
   const types = Object.entries(c.byType).sort((a, b) => b[1] - a[1])
   return (
-    <Dialog label="Data and privacy" onClose={onClose} side>
-      <h2 className="auth-h det-h">Data and privacy</h2>
+    <Dialog label="Data and privacy" onClose={onClose} side cls="dlg-privacy">
+      <header className="pv-head"><h2 className="auth-h det-h">Data and privacy</h2></header>
+      <div className="pv-body">
       <h3 className="mem-sec st-h3">What is collected</h3>
       <p>When a member uses the member area, Fyyr records: searches (a short normalised term, its topic and how many results it returned), opportunities shown in lists, detail views, saves, source-link clicks, "not relevant" marks, and changes to selected interests. Each event has a time, a company identifier and the company’s industry. Typed text containing emails, URLs, long numbers or long sentences is dropped, not stored.</p>
       <h3 className="mem-sec st-h3">Why</h3>
@@ -172,37 +178,17 @@ function PrivacyDialog({ d, onClose }) {
       <h3 className="mem-sec st-h3">Metric definitions</h3>
       <ul className="st-plain">{DEFINITIONS.map(([a, b]) => <li key={a}><b>{a}.</b> {b}</li>)}</ul>
       <p className="notice"><b>Prototype notice.</b> Access checks and small-group rules run in the browser. Before real member data is used, they and the export rules must be enforced on a server.</p>
+      </div>
     </Dialog>
   )
 }
 
 function Bell({ d, go }) {
-  const [open, setOpen] = useState(false)
-  const wrap = useRef(null)
-  const id = useId()
-  useEffect(() => {
-    if (!open) return
-    const key = e => e.key === 'Escape' && setOpen(false)
-    const down = e => !wrap.current?.contains(e.target) && setOpen(false)
-    document.addEventListener('keydown', key); document.addEventListener('pointerdown', down)
-    return () => { document.removeEventListener('keydown', key); document.removeEventListener('pointerdown', down) }
-  }, [open])
-  const shared = useNotifications().filter(x => !x.read)
-  const n = d.res.allFindings.length + shared.length
-  return (
-    <div className="bell-wrap" ref={wrap}>
-      <button type="button" className="icon-btn" aria-label="Notifications" aria-expanded={open} aria-controls={id} onClick={() => setOpen(o => !o)}><Icon n="bell" />{n > 0 && <i className="dot" />}</button>
-      {open && (
-        <div className="pop mem-pop" id={id} role="region" aria-label="Notifications">
-          <strong>{n ? plural(n, 'item needs attention', 'items need attention') : 'Nothing needs attention'}</strong>
-          {shared.length > 0 && <p className="fine"><b>Shared by members:</b> {shared.slice(0, 3).map(x => `${x.company} shared “${x.title}”`).join('; ')}{shared.length > 3 && ` and ${shared.length - 3} more`}. <a href="/staff/events/shared" className="mem-more" onClick={e => { e.preventDefault(); setOpen(false); go('/staff/events/shared') }}>Open the shared queue</a></p>}
-          {d.res.findings.slice(0, 3).map(f => <p key={f.id} className="fine">{f.title}</p>)}
-          <p className="fine">Preview only: nothing is delivered in this demo.</p>
-          <a href="/staff" className="mem-more" onClick={e => { e.preventDefault(); setOpen(false); go('/staff') }}>Open overview</a>
-        </div>
-      )}
-    </div>
-  )
+  const live = d.source === 'live'
+  const n = useAccountNotifications({ audience: 'staff', live })
+  const items = n.items.map(x => ({ id: x.id, icon: ICON[x.type] || 'bell', title: x.title, detail: x.detail, time: ago(x.ts), timeFull: new Date(x.ts).toLocaleString('en-GB'), unread: x.unread,
+    run: () => { n.markRead(x.id); go(x.target.path) } }))
+  return <NotifMenu items={items} unread={n.unread} onMarkAll={n.markAllRead} empty={live ? 'No notifications yet. Notifications are not connected to recorded data, so nothing is shown here.' : 'No notifications yet.'} footer={{ label: 'Notification preferences', run: () => go('/staff/profile') }} />
 }
 
 // ---------- shell ----------
@@ -214,7 +200,8 @@ export default function StaffApp({ path }) {
   const seg = path.replace(/^\/staff\/?/, '').split('/').filter(Boolean)
   const slug = seg[0] || 'overview'
   const sub = seg.slice(1).join('/') || undefined
-  useSyncedEvents(viewerFromSession())
+  useState(() => { seedDemoWorkflow(); seedDemoNotifications(); return 1 }) // adds the fictional demo opportunities once (events/demoWorkflow.js)
+  const synced = useSyncedEvents(viewerFromSession()) // changes whenever a demo opportunity is published, edited or archived
   const page = PAGES.includes(slug) ? slug : 'overview'
   const [source, setSource] = useState('demo')
   const [f, setF] = useState(DEFAULT_F)
@@ -242,17 +229,17 @@ export default function StaffApp({ path }) {
       const ctx = { range, f: eff, k: store.k, source }
       return { events, shared, ctx, res: compute(events, { range, f: eff, k: store.k, shared: shared.map(c => c.id) }) }
     } catch (e) { return { error: e } }
-  }, [source, range, eff, store.k, tick])
+  }, [source, range, eff, store.k, tick, synced])
 
   useEffect(() => { if (data.shared && f.company !== 'all' && !data.shared.some(c => c.id === f.company)) setF(x => ({ ...x, company: 'all' })) }, [data.shared, f.company])
 
   const go = p => { setMenu(false); navigate(p) }
-  const logout = () => { clearSession(); navigate('/') }
+  const logout = async () => { await signOut(); navigate('/') }
   if (data.error) return (
     <main className="mem-content" ref={main} tabIndex={-1}><div className="mem-empty"><strong>{data.error instanceof AccessError ? 'Staff access required' : 'Something went wrong'}</strong><p>{data.error instanceof AccessError ? 'This area is only for Blue Science Park staff.' : 'The analytics could not be loaded.'}</p><button type="button" className="btn btn-primary btn-sm" onClick={logout}>Back to home</button></div></main>
   )
 
-  const d = { ...data, store, openFollow: setFollow, source, sub }
+  const d = { ...data, store, openFollow: setFollow, source, sub, synced }
   const c = data.res.coverage
   const sharedList = data.shared.map(s => ({ id: s.id, name: demoCompany(s.id).name }))
   const tool = page === 'events' || page === 'network' || page === 'profile' // event authoring is not an analytics view: no period filters or data banners
@@ -278,15 +265,16 @@ export default function StaffApp({ path }) {
 
       <div className="mem-col">
         <AppHeader icon={page === 'profile' ? 'experts' : NAV.find(n => n.id === page).icon} title={title} menuOpen={menu} onMenu={() => setMenu(m => !m)}>
+          <ModeSwitch fixed />
           <Bell d={d} go={go} />
           <AccountLink initials={sp.profile.initials} name={sp.profile.name} org={sp.profile.organisation} href="/staff/profile" onGo={go} />
         </AppHeader>
 
         <main id="st-main" ref={main} tabIndex={-1} className="mem-content">
           <div className="mem-page">
-            <Toolbar
+            <Toolbar className="st-tb"
               left={page === 'overview' || page === 'ours' ? <PeriodControl f={eff} setF={setF} range={range} presetsOnly={page === 'overview'} /> : !tool ? <FilterBar f={eff} setF={setF} presetsOnly={page === 'overview'} range={range} companies={sharedList} minimal={minimal} parkOnly={page === 'ours'} source={source} /> : null}
-              right={<>
+              right={page === 'profile' ? null : <>
                 {!tool && <label className="sort st-source">Data
             <select className="sel" value={source} onChange={e => { setSource(e.target.value); setF(x => ({ ...x, company: 'all' })) }}>{SOURCES.map(([id, l]) => <option key={id} value={id}>{l}</option>)}</select>
           </label>}
@@ -294,7 +282,7 @@ export default function StaffApp({ path }) {
               </>} />
             {!tool && source !== 'demo' && <p className="notice st-banner"><b>Recorded in this browser.</b> Events from the member area in this browser, one company. Groups with fewer than {store.k} companies are hidden, so most detail stays hidden here.</p>}
             {!tool && store.k < DEFAULT_K && <p className="notice st-warn" role="alert"><b>Small-group protection is reduced (threshold {store.k}).</b> Results involving fewer than {DEFAULT_K} companies may reveal one company’s activity. <button type="button" className="auth-link inline" onClick={() => store.setK(DEFAULT_K)}>Restore the default ({DEFAULT_K})</button></p>}
-            {tool ? (page === 'network' ? <NetworkPage /> : page === 'profile' ? <StaffProfile sp={sp} source={source} /> : <EventsPage sub={sub} />) : <DemoCtx.Provider value={source === 'demo'}><Page d={d} /></DemoCtx.Provider>}
+            {tool ? (page === 'network' ? <NetworkPage /> : page === 'profile' ? <StaffProfile sp={sp} source={source} /> : <EventsPage sub={sub} />) : <><SimNote /><DemoCtx.Provider value={source === 'demo'}><Page d={d} /></DemoCtx.Provider></>}
             {!tool && <footer className="st-foot fine">
               Last event {c.last ? new Date(c.last).toLocaleString('en-GB') : 'none yet'} · {c.inPeriod} counted events in this period, {c.total} in total from {plural(c.companies, 'company', 'companies')} · Not tracked: registrations, applications, free-text feedback · <button type="button" className="auth-link inline" onClick={() => setDlg('privacy')}>Data and privacy</button>
             </footer>}

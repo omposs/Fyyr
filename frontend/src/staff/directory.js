@@ -3,10 +3,12 @@ import { DEMO_COMPANIES } from './demoEvents.js'
 import { groupTopic, UNGROUPED } from './topics.js'
 
 // ============================================================================================
-// Staff company directory: ONE list built from two sources, so it can later be replaced by an API.
-//  - verified: real organisations from the science-park network, kept only where the park affiliation is confirmed.
-//    They carry NO simulated activity: their behaviour on Fyyr is unknown, so none is shown.
-//  - fictional: the invented companies that the simulated analytics are generated for (staff/demoEvents.js).
+// Staff company directory: ONE list, one identity per company, so it can later be replaced by an API.
+//  - Real organisations from the science-park network, kept only where the park affiliation is confirmed against the park's own pages.
+//    Name, description and affiliation are verified facts (see data/verifiedNetwork.js).
+//  - Fourteen of them (all Blue Science Park members) also carry SIMULATED activity for the demo: their sector grouping, interests,
+//    consent to share a summary and every search, view and save are invented (staff/demoEvents.js). They are flagged `simulated`.
+//    Other real companies carry no activity at all.
 // Awaiting-review and network-only fictional records stay in the network page.
 // ============================================================================================
 const SECTOR_RULES = [
@@ -20,19 +22,17 @@ const sectorOf = text => (SECTOR_RULES.find(([, re]) => re.test(text)) || ['Othe
 
 const topicsOf = tags => [...new Set(tags.map(groupTopic).filter(t => t !== UNGROUPED))]
 
+const SIM = new Map(DEMO_COMPANIES.map(c => [c.netId, c]))
 const verified = () => NET.filter(c => !c.isDemo && c.affiliation.status === 'confirmed').map(c => {
   const tags = [...c.industry, ...c.tech]
+  const sim = SIM.get(c.id)
   return {
-    id: c.id, name: c.name, park: c.park, parkName: PARKS[c.park].name, sector: sectorOf(tags.join(' ') + ' ' + c.summary), fictional: false,
-    status: 'Verified affiliation', relation: c.affiliation.relation, summary: c.summary, website: c.website, evidence: c.affiliation.u,
-    interests: topicsOf([...tags, c.summary]).slice(0, 3), tags: tags.slice(0, 6), eventId: null,
+    id: c.id, name: c.name, park: c.park, parkName: PARKS[c.park].name, fictional: false, simulated: !!sim,
+    sector: sim ? sim.sector : sectorOf(tags.join(' ') + ' ' + c.summary),
+    status: 'Verified affiliation', relation: c.affiliation.relation, summary: c.summary, website: c.website, evidence: c.affiliation.u, checked: c.affiliation.d,
+    interests: sim ? sim.interests : topicsOf([...tags, c.summary]).slice(0, 3), tags: tags.slice(0, 6), eventId: sim ? sim.id : null, share: sim ? sim.share : false,
   }
 })
-const fictional = () => DEMO_COMPANIES.map(c => ({
-  id: c.id, name: c.name, park: c.park, parkName: PARKS[c.park].name, sector: c.sector, fictional: true,
-  status: 'Fictional demo', relation: 'Fictional demo company', summary: `Invented ${c.sector.toLowerCase()} company used for the simulated analytics.`, website: '', evidence: null,
-  interests: c.interests, tags: [], eventId: c.id, share: c.share,
-}))
 
-export const listDirectory = () => [...verified(), ...fictional()].sort((a, b) => a.name.localeCompare(b.name, 'sv'))
+export const listDirectory = () => verified().sort((a, b) => a.name.localeCompare(b.name, 'sv'))
 export const DIRECTORY_SECTORS = ['Maritime & offshore', 'Energy', 'Software & IT', 'Advanced manufacturing', 'Health & life science', 'Other']

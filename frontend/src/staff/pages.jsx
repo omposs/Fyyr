@@ -7,10 +7,15 @@ import { DEFINITIONS, LIMITS, companySummary, fmtDY, oppDetail, toCsv } from './
 import { PARKS } from '../network/data.js'
 import { DIRECTORY_SECTORS, listDirectory } from './directory.js'
 import { navigate } from '../auth.js'
-import { INVITES_TRACKED, NOT_CONNECTED, REGISTRATIONS_TRACKED, STATUS_LABEL, parkCatalogue, parkSummary } from './park.js'
+import { STATUS_LABEL, parkCatalogue, parkSummary } from './park.js'
 import { STATUSES } from './store.js'
+import { ParkBadge, parkTone } from '../network/ParkBadge.jsx'
+import { CAT_COLOR as CC, topicColor } from './colors.js'
+import { CategorySummary, TopicInsights } from './topics.jsx'
+import { CAT_COLOR, CatChip, CategoryBars, InBar, OppDetail, PerfChart, TopOpps, useOppFromUrl, vsBefore } from './perf.jsx'
 
 const plural = (n, a, b) => `${n} ${n === 1 ? a : b}`
+const initialsOf = name => name.replace(/\(.*?\)/g, '').split(/[\s&–-]+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()
 const hiddenNote = (k, n, what) => n > 0 && <p className="fine st-hidden"><Icon n="layers" size={14} /> {plural(n, `${what} is`, `${what}s are`)} hidden because fewer than {k} companies contributed. This protects individual companies.</p>
 
 function Empty({ title, children }) { return <div className="mem-empty"><strong>{title}</strong><p>{children}</p></div> }
@@ -69,7 +74,6 @@ export function Insights({ d }) {
   const grow = res.growth.activity.slice(0, 6)
   const cats = res.catRows.filter(c => !c.hidden)
   const unmet = res.unmet.rows.slice(0, 4)
-  const multi = res.activity.filter(a => a.companies >= Math.max(k, 3)).sort((a, b) => b.companies - a.companies || b.cur - a.cur).slice(0, 8)
   const a = res.summary.active
   return (
     <div className="mem-page st-page">
@@ -80,13 +84,12 @@ export function Insights({ d }) {
       </section>
 
       <div className="ov-two">
-        <Block title="Growing interests" table={<SimpleTable caption="Growing interests" head={['Topic', 'Companies now', 'Before']} rows={grow.map(r => [r.topic, r.cur, r.prev])} />}>
-          {grow.length ? <BarList label="Companies active per growing topic" rows={grow.map(r => ({ label: r.topic, value: r.cur, sub: `+${r.abs} vs ${r.prev}` }))} /> : <p className="fine">No topic gained active companies in this period.</p>}
-          <a href="/staff/overview" className="mem-more" onClick={e => { e.preventDefault(); navigate('/staff/overview') }}>Compare saved interests on Overview</a>
+        <Block title="Growing interests">
+          {grow.length ? <BarList label="Companies active per growing topic" rows={grow.map(r => ({ label: r.topic, value: r.cur, color: topicColor(r.topic), sub: `+${r.abs} vs ${r.prev}` }))} /> : <p className="fine">No topic gained active companies in this period.</p>}
         </Block>
 
-        <Block title="Interest by category" table={<SimpleTable caption="Interest by category" head={['Category', 'Views, saves and clicks', 'Change', 'Companies']} rows={res.catRows.map(c => c.hidden ? [c.label, 'Hidden', '—', `<${k}`] : [c.label, c.engagement, pctText(c.change), c.companies])} />}>
-          <BarList label="Engagement per category" rows={cats.map(c => ({ label: c.label, value: c.engagement, sub: c.change.reliable ? c.change.text : '' }))} />
+        <Block title="Interest by category">
+          <BarList label="Engagement per category" rows={cats.map(c => ({ label: c.label, value: c.engagement, color: CC[c.id], sub: c.change.reliable ? c.change.text : '' }))} />
           {hiddenNote(k, res.catRows.filter(c => c.hidden).length, 'category')}
         </Block>
       </div>
@@ -95,17 +98,15 @@ export function Insights({ d }) {
         {unmet.length ? <ul className="st-rows">{unmet.map(r => <li key={r.key}><b>{r.label}</b><span>{plural(r.zero, 'search', 'searches')} with no results · {plural(r.companies, 'company', 'companies')}{r.supply != null && ` · ${plural(r.supply, 'open listing', 'open listings')}`}</span></li>)}</ul> : <p className="fine">No topic had no-result searches from at least {k} companies.</p>}
       </Block>
 
-      <details className="mem-card st-detail">
-        <summary>Supporting evidence</summary>
-        <h3 className="mem-sec st-h3">Engagement over time</h3>
-        <LineChart title="Observed engagement by category" labels={res.buckets.labels} series={res.catSeries.filter(c => !res.catRows.find(r => r.id === c.id).hidden)} xLabel={res.buckets.unit === 'day' ? 'Day' : 'Week starting'} yLabel="Views, saves and clicks" />
-        <h3 className="mem-sec st-h3">Topics attracting several companies</h3>
-        <SimpleTable caption="Topics attracting several companies" head={['Topic', 'Companies', 'Interactions', 'Change']} rows={multi.map(x => [x.topic, x.companies, x.cur, pctText(x.change)])} />
-        <h3 className="mem-sec st-h3">Stated, observed and inferred</h3>
-        <SimpleTable caption="Stated, observed and inferred interests" head={['Topic', 'Stated by', 'Observed from', 'Inferred (tentative)']}
-          rows={res.triRows.map(r => { const c = n => (n === 0 ? 0 : n < k ? `<${k}` : n); return [r.topic, c(r.stated), c(r.observed), c(r.inferred)] })} />
-        {res.combos.length > 0 && <><h3 className="mem-sec st-h3">Common combinations</h3><ul className="st-combos">{res.combos.map(c => <li key={c.pair}><span>{c.pair}</span><b>{plural(c.companies, 'company', 'companies')}</b></li>)}</ul></>}
-      </details>
+      <div className="ti-split">
+        <section className="mem-card st-block" aria-labelledby="ins-trend">
+          <div className="st-block-h"><h2 className="mem-side-h" id="ins-trend">Engagement over time<DemoBadge /></h2></div>
+          <LineChart title="Observed engagement by category" labels={res.buckets.labels} series={res.catSeries.filter(c => !res.catRows.find(r => r.id === c.id).hidden)} xLabel={res.buckets.unit === 'day' ? 'Day' : 'Week starting'} yLabel="Interactions (views, saves and source clicks)" height={230} />
+        </section>
+        <CategorySummary res={res} k={k} />
+      </div>
+
+      <TopicInsights res={res} k={k} />
     </div>
   )
 }
@@ -157,12 +158,12 @@ export function SearchTrends({ d }) {
       </section>
       <div className="chips-row" role="group" aria-label="Filter topics">{chips.map(([id, l]) => <button key={id} type="button" className="fchip" aria-pressed={chip === id} onClick={() => setChip(id)}>{l}</button>)}</div>
       <section className="mem-card st-block" aria-label="Search topics">
-        <DataTable caption="Search topics" rows={shown} rowKey={r => r.topic} initial={{ k: 'searches', dir: -1 }} limit={10} onRow={setOpen} empty="No topic matches this filter."
+        <DataTable caption="Search topics" rows={shown} rowKey={r => r.topic} initial={{ k: 'searches', dir: -1 }} onRow={setOpen} empty="No topic matches this filter."
           cols={[
             { k: 'topic', label: 'Topic', sort: r => r.topic, render: r => <>{r.topic}{r.change.reliable && r.change.abs !== 0 && <small className={'st-chg ' + (r.change.abs > 0 ? 'up' : 'down')}>{r.change.text}</small>}</> },
             { k: 'searches', label: 'Searches', num: true },
             { k: 'companies', label: 'Companies', num: true },
-            { k: 'avail', label: 'Results found', num: true, sort: r => (r.searches - r.zero) / r.searches, render: r => <>{r.withResults} of {r.searches}{r.zero / r.searches >= .5 && <b className="st-flag"> mostly none</b>}</> },
+            { k: 'avail', label: 'Results found', num: true, sort: r => (r.searches - r.zero) / r.searches, render: r => <>{r.withResults} of {r.searches}</> },
             { k: 'follow', label: 'Follow-up engagement', num: true, sort: r => (pct(r) ?? -1), render: r => (r.withResults ? <>{r.follow} of {r.withResults} ({pct(r)}%)</> : <span className="fine">No results</span>) },
           ]} />
         {hiddenNote(k, res.topics.hiddenCount, 'topic')}
@@ -173,66 +174,23 @@ export function SearchTrends({ d }) {
 }
 
 // ---------------- Opportunity performance ----------------
-function OppPanel({ id, d, onClose }) {
-  const det = useMemo(() => oppDetail(d.events, id, d.ctx), [id, d.events, d.ctx])
-  const row = d.res.opps.rows.find(r => r.id === id)
-  const o = det.o
-  const key = `opp:${id}:${d.ctx.range.from}`
-  return (
-    <Dialog label={o.title} onClose={onClose} side>
-      <p className="opp-top"><span className="ocat"><Icon n={MCAT[o.mcat].icon} size={16} />{MCAT[o.mcat].label}</span>{o.demo && <span className="pill">Demo listing</span>}</p>
-      <h2 className="auth-h det-h">{o.title}</h2>
-      <p className="fine">{d.ctx.range.label}. Aggregate across companies. No individual activity is shown.</p>
-      <LineChart title={`Engagement with ${o.title}`} labels={det.labels} series={det.series} xLabel={det.unit === 'day' ? 'Day' : 'Week starting'} yLabel="Events" height={200} />
-      <dl className="det">
-        <div className="det-f"><dt>Counts in this period</dt><dd>{row ? `${row.shown} shown in lists · ${row.views} views · ${row.saves} saves · ${row.clicks} source clicks · ${row.notRel} marked not relevant` : 'No data'}</dd></div>
-        <div className="det-f"><dt>Saves per 100 views</dt><dd>{row?.savesPer100 == null ? 'Not enough views' : `${row.savesPer100} (${row.saves} saves ÷ ${row.views} views, ${row.companies} companies). Views and saves are not linked per person, so this is a ratio, not a conversion rate.`}</dd></div>
-        <div className="det-f"><dt>Industries engaging</dt><dd>
-          {det.sectors.length ? <ul className="st-plain">{det.sectors.map(s => <li key={s.sector}>{s.sector}: {plural(s.n, 'interaction', 'interactions')} from {plural(s.companies, 'company', 'companies')}</li>)}</ul> : 'No group is large enough to show.'}
-          {det.other && <span className="fine"> {det.other.groups} smaller group(s) combined and hidden.</span>}
-        </dd></div>
-        <div className="det-f"><dt>Explicit feedback</dt><dd>{det.notRel} marked not relevant. Free-text feedback is not collected, so the reason is unknown.</dd></div>
-        <div className="det-f"><dt>Source and date last checked</dt><dd>{o.url ? <><a href={o.url} target="_blank" rel="noopener noreferrer">{o.source}</a>, checked {det.checked}</> : 'Fictional demo listing. It has no source.'}</dd></div>
-      </dl>
-      <div className="auth-row det-actions">
-        <button type="button" className="btn btn-primary btn-sm" disabled={d.store.has(key)} onClick={() => d.openFollow({ key, kind: 'lowsave', title: `Review recommendation: ${o.title}`, observed: row ? `${row.views} views, ${row.saves} saves, ${row.clicks} source clicks, ${row.companies} companies.` : '', period: d.ctx.range.label, companies: row?.companies || 0, evidence: { head: ['Measure', 'Count'], rows: row ? [['Shown', row.shown], ['Views', row.views], ['Saves', row.saves], ['Source clicks', row.clicks], ['Not relevant', row.notRel]] : [] } })}>{d.store.has(key) ? 'Saved as follow-up' : 'Save as follow-up'}</button>
-      </div>
-    </Dialog>
-  )
-}
+// The opportunity detail popup is shared by every staff screen (staff/perf.jsx).
+const OppPanel = ({ id, d, onClose }) => <OppDetail id={id} d={d} onClose={onClose} />
 
 // ---------------- Blue Science Park analytics (own page: /staff/ours) ----------------
-const NC = <span className="st-nc" title="No tracking is connected for this metric">{NOT_CONNECTED}</span>
 const Tip = ({ text }) => <span className="ov-tipk" tabIndex={0} title={text} aria-label={text}>ⓘ</span>
 const TREND = [['views', 'Views'], ['saves', 'Saves'], ['clicks', 'Source clicks']]
 
 // Everything about one opportunity that is not in the table: category, status, source clicks, registrations and its own trend.
-function ParkOppPanel({ row, d, onClose }) {
-  const det = useMemo(() => (OPP_BY_ID[row.id] ? oppDetail(d.events, row.id, d.ctx) : null), [row.id, d.events, d.ctx])
-  return (
-    <Dialog label={row.title} onClose={onClose} side>
-      <p className="opp-top"><span className="ocat"><Icon n={MCAT[row.mcat].icon} size={16} />{MCAT[row.mcat].label}</span><span className="pill">{STATUS_LABEL[row.status]}</span>{row.demo && <span className="pill nw-demo">Demo</span>}</p>
-      <h2 className="auth-h det-h">{row.title}</h2>
-      <p className="fine">{d.ctx.range.label}</p>
-      <dl className="det">
-        <div className="det-f"><dt>Views</dt><dd>{row.hidden ? 'Hidden (too few companies)' : row.views}</dd></div>
-        <div className="det-f"><dt>Saves</dt><dd>{row.hidden ? 'Hidden' : row.saves}</dd></div>
-        <div className="det-f"><dt>Source clicks <Tip text="A click on a source or registration link. It is not a registration." /></dt><dd>{row.hidden ? 'Hidden' : row.clicks}</dd></div>
-        <div className="det-f"><dt>Companies reached</dt><dd>{row.hidden ? `Fewer than ${d.ctx.k}` : row.companies}</dd></div>
-        <div className="det-f"><dt>Confirmed registrations</dt><dd>{NC}</dd></div>
-        <div className="det-f"><dt>Attendance</dt><dd>{NC}</dd></div>
-      </dl>
-      {det && !row.hidden && <LineChart title={`Engagement with ${row.title}`} labels={det.labels} series={det.series} xLabel={det.unit === 'day' ? 'Day' : 'Week starting'} yLabel="Count" height={180} />}
-      <div className="auth-row det-actions"><button type="button" className="btn btn-glass btn-sm" onClick={onClose}>Close</button></div>
-    </Dialog>
-  )
-}
+const ParkOppPanel = ({ row, d, onClose }) => <OppDetail id={row.id} d={d} onClose={onClose} />
 
 export function OurPerformance({ d }) {
   const { res } = d, k = d.ctx.k, p = res.park
-  const [open, setOpen] = useState(null)
-  const [metric, setMetric] = useState('views')
-  const cat = useMemo(() => parkCatalogue(), [d.events, d.ctx])
+  const [open, setOpen] = useState(null) // an opportunity id
+  useOppFromUrl(setOpen)
+  const [metric, setMetric] = useState('all')
+  const cat = useMemo(() => parkCatalogue(), [d.events, d.ctx, d.synced])
+  const parkOfDemo = useMemo(() => new Map(listDirectory().filter(c => c.eventId).map(c => [c.eventId, c.park])), [])
   const published = cat.filter(c => c.status === 'published')
   const sum = parkSummary(cat)
   const byId = new Map(p.rows.map(r => [r.id, r]))
@@ -244,47 +202,75 @@ export function OurPerformance({ d }) {
   const catRows = Object.keys(MCAT).map(id => { const e = p.byCat.find(c => c.id === id); return { id, label: MCAT[id].label, published: sum.byCat.find(c => c.id === id)?.n || 0, views: e?.views || 0, saves: e?.saves || 0, clicks: e?.clicks || 0, companies: e?.companies || 0 } }).filter(c => c.published || c.views || c.saves || c.clicks)
   const g = guard(d); if (g) return <div className="mem-page st-page st-ours">{g}</div>
   const unit = res.buckets.unit === 'day' ? 'Day' : 'Week starting'
-  const mName = TREND.find(t => t[0] === metric)[1]
-  const third = REGISTRATIONS_TRACKED ? null : { label: 'Source clicks', value: p.clicks, tip: 'Clicks on source or registration links. Confirmed registrations are not connected, and a click is not a registration.' }
+  const METRICS = [['all', 'Interactions'], ['views', 'Views'], ['saves', 'Saves'], ['clicks', 'Source clicks']]
+  const mName = METRICS.find(t => t[0] === metric)[1]
+  const points = metric === 'all' ? p.series : p.seriesBy[metric]
+  const maxV = Math.max(1, ...rows.map(r => r.views)), maxS = Math.max(1, ...rows.map(r => r.saves)), maxC = Math.max(1, ...rows.map(r => r.companies))
   return (
     <div className="mem-page st-page st-ours">
       <section className="st-stats" aria-label="Summary">
-        <Stat label="Companies reached" value={p.companies} sub={`${p.prev.companies} before`} />
-        <Stat label="Saves" value={p.saves} sub={`${p.prev.saves} before`} />
-        <Stat label={third.label} value={third.value} sub={<>{p.prev.clicks} before <Tip text={third.tip} /></>} />
+        <Stat label="Interactions" value={p.engagement} sub={<>{vsBefore(p.engagement, p.prev.engagement)} <Tip text="Interactions are views, saves and source clicks on Blue Science Park opportunities." /></>} />
+        <Stat label="Companies reached" value={p.companies} sub={vsBefore(p.companies, p.prev.companies)} />
+        <Stat label="Saves" value={p.saves} sub={vsBefore(p.saves, p.prev.saves)} />
+        <Stat label="Source clicks" value={p.clicks} sub={<>{vsBefore(p.clicks, p.prev.clicks)} <Tip text="Clicks on source or registration links. Confirmed registrations are not connected, and a click is not a registration." /></>} />
       </section>
 
-      <div className="st-ours-grid">
-        <section className="st-plain-card" aria-labelledby="ours-trend">
-          <div className="st-block-h"><h2 className="mem-side-h" id="ours-trend">Activity trend<DemoBadge /></h2>
-            <label className="sort">Metric<select className="sel st-mini" value={metric} onChange={e => setMetric(e.target.value)}>{TREND.map(([id, l]) => <option key={id} value={id}>{l}</option>)}</select></label></div>
-          <LineChart title={`Blue Science Park ${mName.toLowerCase()}`} labels={p.labels} series={[{ id: metric, name: mName, points: p.seriesBy[metric] }]} xLabel={unit} yLabel={mName} height={220} legend={false} />
+      <div className="pf-split">
+        <section className="pf-card" aria-labelledby="ours-trend">
+          <div className="st-block-h"><h2 id="ours-trend">Activity trend<DemoBadge /></h2>
+            <label className="sort">Metric<select className="sel st-mini" value={metric} onChange={e => setMetric(e.target.value)}>{METRICS.map(([id, l]) => <option key={id} value={id}>{l}</option>)}</select></label></div>
+          <p className="fine">{res.range.label}, compared with {res.range.prevLabel}.</p>
+          <PerfChart title={`Blue Science Park ${mName.toLowerCase()}`} labels={p.labels} points={points} name={mName} xLabel={unit} height={250} />
         </section>
-
-        <section className="st-plain-card" aria-labelledby="ours-res">
-          <div className="st-block-h"><h2 className="mem-side-h" id="ours-res">Opportunity results<DemoBadge /> <Tip text={`Companies reached is distinct companies. Hidden means fewer than ${k} companies engaged. Zero means no engagement was recorded.`} /></h2></div>
-          <DataTable caption="Blue Science Park opportunities" rows={rows} rowKey={r => r.id} initial={{ k: 'views', dir: -1 }} limit={5} moreLabel="Show all" onRow={setOpen} empty="No published Blue Science Park opportunity yet."
-            cols={[
-              { k: 'title', label: 'Opportunity', sort: r => r.title, render: r => <>{r.title}{r.demo && <span className="pill nw-demo st-pill">Demo</span>}</> },
-              { k: 'views', label: 'Views', num: true, sort: r => (r.hidden ? -1 : r.views), render: r => (r.hidden ? <span className="fine" title="Fewer companies engaged than the minimum group size">Hidden</span> : r.views) },
-              { k: 'saves', label: 'Saves', num: true, sort: r => (r.hidden ? -1 : r.saves), render: r => (r.hidden ? <span className="fine">Hidden</span> : r.saves) },
-              { k: 'companies', label: 'Companies reached', num: true, sort: r => (r.hidden ? -1 : r.companies), render: r => (r.hidden ? <span className="fine">Hidden</span> : r.companies) },
-            ]} />
+        <section className="pf-card" aria-labelledby="ours-top">
+          <div className="st-block-h"><h2 id="ours-top">Top-performing opportunities<DemoBadge /></h2></div>
+          <p className="fine">Ranked by interactions, {res.range.label}.</p>
+          <TopOpps rows={rows} onOpen={r => setOpen(r.id)} />
         </section>
       </div>
 
-      <details className="st-fold">
-        <summary>Category breakdown</summary>
-        <SimpleTable caption="Performance by category" head={['Category', 'Published', 'Views', 'Saves', 'Source clicks', 'Companies']} rows={catRows.map(c => [c.label, c.published, c.views, c.saves, c.clicks, c.companies])} />
-      </details>
-      <details className="st-fold">
-        <summary>Companies, registrations and invitations</summary>
-        <SimpleTable caption="Engagement by member company" head={['Company', 'Views', 'Saves', 'Source clicks']}
-          rows={[...named.map(c => [sharedNames.get(c.id), c.views, c.saves, c.clicks]), ...(other.length ? [[`${plural(other.length, 'other company', 'other companies')} (not named)`, tot.views, tot.saves, tot.clicks]] : [])]} />
-        <SimpleTable caption="Registrations and invitations" head={['Measure', 'Status']} rows={[['Confirmed registrations', NC], ['Attendance', NC], ['Invitations sent', INVITES_TRACKED ? 'Tracked' : NC], ['Invitations delivered', INVITES_TRACKED ? 'Tracked' : NC], ['Responses', INVITES_TRACKED ? 'Tracked' : NC]]} />
-        <p className="fine">Only companies that agreed to share their activity are named. Member-created events are not included.</p>
-      </details>
-      {open && <ParkOppPanel row={open} d={d} onClose={() => setOpen(null)} />}
+      <section className="pf-card" aria-labelledby="ours-res">
+        <div className="st-block-h"><h2 id="ours-res">Opportunity results<DemoBadge /> <Tip text={`Companies reached is distinct companies. Hidden means fewer than ${k} companies engaged. Zero means no engagement was recorded.`} /></h2></div>
+        <DataTable caption="Blue Science Park opportunities" rows={rows} rowKey={r => r.id} initial={{ k: 'views', dir: -1 }} onRow={r => setOpen(r.id)} empty="No published Blue Science Park opportunity yet."
+          cols={[
+            { k: 'title', label: 'Opportunity', sort: r => r.title, render: r => <>{r.title}{r.demo && <span className="pill nw-demo st-pill">Demo</span>}</> },
+            { k: 'catLabel', label: 'Category', sort: r => r.catLabel || '', render: r => <CatChip id={r.mcat} /> },
+            { k: 'views', label: 'Views', num: true, sort: r => (r.hidden ? -1 : r.views), render: r => (r.hidden ? <span className="fine" title="Fewer companies engaged than the minimum group size">Hidden</span> : <InBar value={r.views} max={maxV} color={CC[r.mcat || r.cat] || "#5468ff"} />) },
+            { k: 'saves', label: 'Saves', num: true, sort: r => (r.hidden ? -1 : r.saves), render: r => (r.hidden ? <span className="fine">Hidden</span> : <InBar value={r.saves} max={maxS} color={CC[r.mcat || r.cat] || "#0e9f8e"} />) },
+            { k: 'companies', label: 'Companies reached', num: true, sort: r => (r.hidden ? -1 : r.companies), render: r => (r.hidden ? <span className="fine">Hidden</span> : <InBar value={r.companies} max={maxC} color={CC[r.mcat || r.cat] || "#7a5af8"} />) },
+          ]} />
+      </section>
+
+      <p className="fine pf-note">Views count openings, saves count bookmarks, and source clicks count visits to the original link. A source click is not a registration or an application.</p>
+
+      <section className="pf-card" aria-labelledby="ours-cat">
+        <div className="st-block-h"><h2 id="ours-cat">Category breakdown<DemoBadge /></h2></div>
+        <DataTable caption="Performance by category" rows={catRows} rowKey={r => r.id} initial={{ k: 'views', dir: -1 }} tableClass="pf-tbl"
+          cols={[
+            { k: 'label', label: 'Category', sort: r => r.label, render: r => <CatChip id={r.id} /> },
+            { k: 'published', label: 'Published opportunities', num: true },
+            { k: 'views', label: 'Views', num: true, render: r => <InBar value={r.views} max={Math.max(1, ...catRows.map(x => x.views))} color={CAT_COLOR[r.id]}>{r.views.toLocaleString('en-GB')}</InBar> },
+            { k: 'saves', label: 'Saves', num: true },
+            { k: 'clicks', label: 'Source clicks', num: true },
+            { k: 'companies', label: 'Companies reached', num: true },
+          ]} />
+        <p className="fine">Companies reached counts distinct companies within each category. A company active in several categories is counted in each, so the column cannot be summed.</p>
+      </section>
+
+      <section className="pf-card" aria-labelledby="ours-co">
+        <div className="st-block-h"><h2 id="ours-co">Company activity<DemoBadge /> <span className="pill nw-demo st-pill">Simulated activity</span></h2></div>
+        <DataTable caption="Engagement by member company" rows={named.map(c => ({ ...c, name: sharedNames.get(c.id), park: parkOfDemo.get(c.id) }))} rowKey={r => r.id} initial={{ k: 'views', dir: -1 }} tableClass="pf-tbl"
+          empty="No company that shares its activity was active in this selection."
+          cols={[
+            { k: 'name', label: 'Company', sort: r => r.name, render: r => <span className="pf-co"><span className="co-av park-v" data-tone={parkTone(r.park)} aria-hidden="true">{initialsOf(r.name)}</span><span className="pf-co-n">{r.name}</span>{r.park && <ParkBadge id={r.park} />}</span> },
+            { k: 'views', label: 'Views', num: true, render: r => <InBar value={r.views} max={Math.max(1, ...named.map(x => x.views))} color="#5468ff" /> },
+            { k: 'saves', label: 'Saves', num: true },
+            { k: 'clicks', label: 'Source clicks', num: true },
+          ]}
+          foot={other.length ? <tr><th scope="row">{plural(other.length, 'other company', 'other companies')} (not named)</th><td className="st-n">{tot.views}</td><td className="st-n">{tot.saves}</td><td className="st-n">{tot.clicks}</td></tr> : null} />
+        <p className="fine">Only companies that agreed to share their activity are named (simulated consent). Member-created events are not included.</p>
+      </section>
+      {open && <OppDetail id={open} d={d} onClose={() => setOpen(null)} />}
     </div>
   )
 }
@@ -292,24 +278,41 @@ export function OurPerformance({ d }) {
 export function Performance({ d }) {
   const { res } = d, k = d.ctx.k
   const [open, setOpen] = useState(null)
+  useOppFromUrl(setOpen)
   const g = guard(d); if (g) return <div className="mem-page st-page">{g}</div>
+  const rows = res.opps.rows
+  const top = key => [...rows].sort((a, b) => b[key] - a[key])[0]
+  const mv = top('views'), ms = top('saves')
+  const maxV = Math.max(1, ...rows.map(r => r.views)), maxS = Math.max(1, ...rows.map(r => r.saves)), maxC = Math.max(1, ...rows.map(r => r.clicks)), maxP = Math.max(1, ...rows.map(r => r.companies))
   return (
     <div className="mem-page st-page">
+      <div className="pf-perf-top">
+        <div className="pf-sum" aria-label="Summary">
+          <div className="pf-sumcard"><small>Most viewed</small>{mv && mv.views > 0 ? <><p>{mv.title}</p><span><CatChip id={mv.cat} /> · {mv.views} views</span></> : <span>No views in this selection</span>}</div>
+          <div className="pf-sumcard"><small>Most saved</small>{ms && ms.saves > 0 ? <><p>{ms.title}</p><span><CatChip id={ms.cat} /> · {ms.saves} saves</span></> : <span>No saves in this selection</span>}</div>
+          <div className="pf-sumcard"><small>Companies reached</small>{res.opps.reached != null ? <><b>{res.opps.reached}</b><span>distinct, across {plural(rows.length, 'opportunity', 'opportunities')}</span></> : <span>Hidden: fewer than {k} companies</span>}</div>
+        </div>
+        <section className="pf-card" aria-labelledby="perf-cat">
+          <div className="st-block-h"><h2 id="perf-cat">Interactions by category<DemoBadge /></h2></div>
+          {res.opps.byCat.length ? <CategoryBars rows={res.opps.byCat} /> : <p className="fine st-empty">Nothing to compare for these filters.</p>}
+          <p className="fine">Interactions are views, saves and source clicks.</p>
+        </section>
+      </div>
       <section className="mem-card st-block" aria-label="Opportunity performance">
-        <DataTable caption="Opportunity performance" rows={res.opps.rows} rowKey={r => r.id} initial={{ k: 'views', dir: -1 }} onRow={r => setOpen(r.id)} limit={12}
+        <DataTable caption="Opportunity performance" rows={rows} rowKey={r => r.id} initial={{ k: 'views', dir: -1 }} onRow={r => setOpen(r.id)}
           empty="No opportunity reached the minimum number of companies."
           cols={[
             { k: 'title', label: 'Opportunity', sort: r => r.title, render: r => <>{r.title}{r.demoListing && <span className="pill nw-demo st-pill">Demo</span>}</> },
-            { k: 'catLabel', label: 'Category', sort: r => r.catLabel || '' },
-            { k: 'views', label: 'Views', num: true },
-            { k: 'saves', label: 'Saves', num: true },
-            { k: 'clicks', label: 'Source clicks', num: true },
-            { k: 'companies', label: 'Companies', num: true },
+            { k: 'catLabel', label: 'Category', sort: r => r.catLabel || '', render: r => <CatChip id={r.cat} /> },
+            { k: 'views', label: 'Views', num: true, render: r => <InBar value={r.views} max={maxV} color={CC[r.mcat || r.cat] || "#5468ff"} /> },
+            { k: 'saves', label: 'Saves', num: true, render: r => <InBar value={r.saves} max={maxS} color={CC[r.mcat || r.cat] || "#0e9f8e"} /> },
+            { k: 'clicks', label: 'Source clicks', num: true, render: r => <InBar value={r.clicks} max={maxC} color={CC[r.mcat || r.cat] || "#d97706"} /> },
+            { k: 'companies', label: 'Companies', num: true, render: r => <InBar value={r.companies} max={maxP} color={CC[r.mcat || r.cat] || "#7a5af8"} /> },
           ]} />
         {hiddenNote(k, res.opps.hiddenCount, 'opportunity')}
         <p className="fine">A source click is not a registration or an application.</p>
       </section>
-      {open && <OppPanel id={open} d={d} onClose={() => setOpen(null)} />}
+      {open && <OppDetail id={open} d={d} onClose={() => setOpen(null)} />}
     </div>
   )
 }
@@ -318,19 +321,19 @@ export function Performance({ d }) {
 const fmtLast = ts => new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 
 function CompanyPanel({ c, d, last, onClose }) {
-  const sum = useMemo(() => (c.fictional && c.share ? companySummary(d.events, c.eventId, d.ctx.range) : null), [c, d.events, d.ctx.range])
+  const sum = useMemo(() => (c.simulated && c.share ? companySummary(d.events, c.eventId, d.ctx.range) : null), [c, d.events, d.ctx.range])
   return (
     <Dialog label={c.name} onClose={onClose} side>
-      <p className="opp-top"><span className="ocat">{c.parkName}</span><span className={c.fictional ? 'pill nw-demo' : 'pill pill-blue'}>{c.fictional ? 'Demo' : c.status}</span></p>
+      <p className="opp-top"><ParkBadge id={c.park} /><span className="pill pill-blue">{c.status}</span>{c.simulated && <span className="pill nw-demo">Simulated activity</span>}</p>
       <h2 className="auth-h det-h">{c.name}</h2>
       <p>{c.summary}</p>
       <dl className="det">
-        <div className="det-f"><dt>Science park</dt><dd>{c.relation !== 'Fictional demo company' ? `${c.relation} · ${c.parkName}` : `Placed in ${c.parkName} for this demo`}</dd></div>
-        <div className="det-f"><dt>Sector</dt><dd>{c.sector}</dd></div>
-        <div className="det-f"><dt>Interests</dt><dd>{c.interests.length ? <span className="mem-chips">{c.interests.map(i => <span key={i} className="pill pill-blue">{i}</span>)}</span> : 'Not specified'}</dd></div>
+        <div className="det-f"><dt>Science park</dt><dd>{`${c.relation} · ${c.parkName}`}{c.checked && <small className="st-sub">Checked against the park’s own pages on {fmtDY(new Date(c.checked + 'T12:00:00').getTime())}. Real company name and description.</small>}</dd></div>
+        <div className="det-f"><dt>{c.simulated ? 'Sector grouping (simulated)' : 'Sector'}</dt><dd>{c.sector}</dd></div>
+        <div className="det-f"><dt>{c.simulated ? 'Interests (simulated)' : 'Interests'}</dt><dd>{c.interests.length ? <span className="mem-chips">{c.interests.map(i => <span key={i} className="pill pill-blue">{i}</span>)}</span> : 'Not specified'}</dd></div>
         {c.website && <div className="det-f"><dt>Website</dt><dd><a href={c.website} target="_blank" rel="noopener noreferrer">{c.website.replace(/^https?:\/\//, '')}</a>{c.evidence && <> · <a href={c.evidence} target="_blank" rel="noopener noreferrer">affiliation evidence</a></>}</dd></div>}
         <div className="det-f"><dt>Engagement summary</dt><dd>
-          {!c.fictional ? 'Not shown. This is a real organisation and no activity has been observed for it.'
+          {!c.simulated ? 'Not shown. This is a real organisation and no activity has been observed for it.'
             : sum ? `${d.ctx.range.label}: ${plural(sum.searches, 'search', 'searches')}, ${plural(sum.views, 'view', 'views')}, ${plural(sum.saves, 'save', 'saves')}${sum.topics.length ? '. Top topics: ' + sum.topics.join(', ') : ''}. Simulated.`
               : 'This company has not agreed to share its own summary, so it only counts in aggregate figures.'}
           {last && <small className="st-sub">Last simulated activity {fmtLast(last)}</small>}
@@ -348,7 +351,7 @@ export function Companies({ d }) {
   const [open, setOpen] = useState(null)
   const all = useMemo(() => listDirectory(), [])
   const lastBy = useMemo(() => { const m = new Map(); for (const e of d.events) if (e.type !== 'interests_set' && e.ts > (m.get(e.company) || 0)) m.set(e.company, e.ts); return m }, [d.events])
-  const lastOf = c => (c.fictional && c.share && d.ctx.source === 'demo' ? lastBy.get(c.eventId) || null : null)
+  const lastOf = c => (c.simulated && c.share && d.ctx.source === 'demo' ? lastBy.get(c.eventId) || null : null)
   const interests = [...new Set(all.flatMap(c => c.interests))].sort()
   const needle = q.trim().toLowerCase()
   const rows = all.filter(c => (park === 'all' || c.park === park) && (sector === 'all' || c.sector === sector) && (interest === 'all' || c.interests.includes(interest)) && (!needle || [c.name, c.parkName, c.sector, ...c.interests].join(' ').toLowerCase().includes(needle)))
@@ -365,14 +368,14 @@ export function Companies({ d }) {
         </div>
       </section>
       <p className="mem-result" role="status">{plural(rows.length, 'company profile', 'company profiles')}</p>
-      <section className="mem-card st-block" aria-label="Companies">
-        <DataTable caption="Companies" rows={rows} rowKey={r => r.id} initial={{ k: 'name', dir: 1 }} onRow={setOpen} limit={15} empty="No company matches these filters."
+      <section className="mem-card st-block st-co" aria-label="Companies">
+        <DataTable caption="Companies" rows={rows} rowKey={r => r.id} initial={{ k: 'name', dir: 1 }} onRow={setOpen} empty="No company matches these filters."
           cols={[
-            { k: 'name', label: 'Company', sort: r => r.name, render: r => <>{r.name}{r.fictional && <span className="pill nw-demo st-pill">Demo</span>}</> },
-            { k: 'parkName', label: 'Science park', sort: r => r.parkName },
-            { k: 'sector', label: 'Sector', sort: r => r.sector },
-            { k: 'interests', label: 'Top interests', render: r => (r.interests.length ? r.interests.slice(0, 2).join(', ') : <span className="fine">Not specified</span>) },
-            { k: 'status', label: 'Profile status', sort: r => r.status },
+            { k: 'name', label: 'Company', sort: r => r.name, render: r => <span className="co-nm"><span className="co-av park-v" data-tone={parkTone(r.park)} aria-hidden="true">{r.name.replace(/\(.*?\)/g, '').split(/[\s&–-]+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()}</span><span>{r.name}{r.simulated && <span className="pill nw-demo st-pill" title="Real company. Its interests and activity are simulated.">Simulated</span>}</span></span> },
+            { k: 'parkName', label: 'Science park', sort: r => r.parkName, render: r => <ParkBadge id={r.park} /> },
+            { k: 'sector', label: 'Sector', sort: r => r.sector, render: r => <span className="co-tag">{r.sector}</span> },
+            { k: 'interests', label: 'Top interests', render: r => (r.interests.length ? <span className="co-tags">{r.interests.slice(0, 2).map(i => <span key={i} className="co-tag int">{i}</span>)}{r.interests.length > 2 && <span className="co-tag more" title={r.interests.slice(2).join(', ')}>+{r.interests.length - 2}</span>}</span> : <span className="fine">Not specified</span>) },
+            { k: 'status', label: 'Profile status', sort: r => r.status, render: r => <span className="co-status">{r.status}</span> },
             { k: 'last', label: 'Last activity', sort: r => lastOf(r) || 0, render: r => (lastOf(r) ? fmtLast(lastOf(r)) : <span className="fine">—</span>) },
           ]} />
       </section>

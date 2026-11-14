@@ -1,8 +1,11 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import CodeSlots from './reactbits/CodeSlots.jsx'
-import { validEmail, startCooldown, useCooldown, fmtLeft } from './auth.js'
+import { validEmail, startCooldown, useCooldown, fmtLeft, AUTH_MODE, signIn, takeNotice } from './auth.js'
+import { errorText } from './api/client.js'
 
-// Demo-only flow: any valid email + any non-empty password, any 6-digit code. Nothing is sent or checked.
+// AUTH_MODE=backend (default): email + password are checked by the backend and there is no code step (the backend has none).
+// AUTH_MODE=demo: the original simulated flow: any valid email + any non-empty password, any 6-digit code. Nothing is sent or checked.
+// The password-reset screens are always the demo (the backend has no reset).
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 const EMAIL_ERR = 'Enter a valid email address, like name@company.com.'
 const TITLES = {
@@ -51,6 +54,9 @@ export default function LoginModal({ onClose, onSuccess }) {
   const [slotsKey, setSlotsKey] = useState(0)
   const [note, setNote] = useState('')
   const [closing, setClosing] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [formErr, setFormErr] = useState('')
+  const [notice] = useState(() => (AUTH_MODE === 'backend' ? takeNotice() : null))
   const left = useCooldown()
   const card = useRef(null)
   const timers = useRef([])
@@ -87,12 +93,21 @@ export default function LoginModal({ onClose, onSuccess }) {
 
   useEffect(() => { card.current?.querySelector('[data-af],.slot')?.focus() }, [step])
 
-  const pickRole = r => {
+  const pickRole = async r => {
+    if (busy) return
     const e = {}
     if (!validEmail(email)) e.email = EMAIL_ERR
     if (!password) e.password = 'Enter your password.'
-    setErrs(e)
+    setErrs(e); setFormErr('')
     if (e.email || e.password) return focusId(e.email ? 'em' : 'pw')
+    if (AUTH_MODE === 'backend') {
+      // The server decides: wrong credentials (401), too many attempts (429), no staff rights, offline, 5xx.
+      setBusy(true)
+      try { await signIn(email, password, r); setPassword(''); onSuccess(r, email.trim()) } catch (err) {
+        setFormErr(err?.kind === 'auth' ? 'Invalid email or password.' : errorText(err)); setBusy(false)
+      }
+      return
+    }
     setRole(r)
     startCooldown() // no-op while a cooldown is already running
     setPassword(''); setShow(false)
@@ -144,6 +159,7 @@ export default function LoginModal({ onClose, onSuccess }) {
         </button>
         <h2 className="auth-h" id={uid + 'h'}>{title}</h2>
         {sub && <p className="auth-sub">{sub}</p>}
+        {notice && step === 'login' && <p className="auth-note" role="status">{notice}</p>}
         {isCode && <p className="auth-sub">We “sent” a 6-digit code to <strong>{email.trim()}</strong>.</p>}
 
         {step === 'login' && (
@@ -153,9 +169,10 @@ export default function LoginModal({ onClose, onSuccess }) {
             <PwField id={uid + 'pw'} label="Password" autoComplete="current-password" show={show} onToggle={() => setShow(s => !s)} value={password} error={errs.password}
               onChange={e => { setPassword(e.target.value); setErrs(x => ({ ...x, password: '' })) }} />
             <div className="auth-roles">
-              <button type="button" className="btn btn-primary" onClick={() => pickRole('member')}>Log in as member</button>
-              <button type="button" className="btn btn-dark" onClick={() => pickRole('staff')}>Log in as staff</button>
+              <button type="button" className="btn btn-primary" disabled={busy} onClick={() => pickRole('member')}>Log in as member</button>
+              <button type="button" className="btn btn-dark" disabled={busy} onClick={() => pickRole('staff')}>Log in as staff</button>
             </div>
+            {formErr && <p className="auth-err" role="alert">{formErr}</p>}
             <button type="button" className="auth-link" onClick={() => go('forgot')}>Forgot password?</button>
           </form>
         )}

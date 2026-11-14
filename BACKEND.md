@@ -41,6 +41,32 @@ python -m app.accounts list
 or over the API as an admin: `PUT /admin/members/{id}/credentials {"email","password"}`, or include `email` and
 `password` in `POST /admin/members`.
 
+**Local demo logins (development only).** Two fictional development personas. Nothing in this project sends email to these
+addresses.
+
+| Role | Person | Email | Password |
+|---|---|---|---|
+| Blue Science Park staff | Erik Andersson | `erik.andersson@bsp.se` | `DemoBSP2026!` |
+| Saab member | Anna Johansson, Innovation Coordinator | `anna.johansson@saab.se` | `DemoBSP2026!` |
+
+These are local development credentials; change them for anything shared.
+
+```
+python -m app.dev_accounts --check   # shows what would change
+python -m app.dev_accounts           # updates the existing accounts in place (or creates them), idempotent
+```
+
+It is a command you run yourself: nothing calls it at startup, and it refuses to run if `BSP_ENVIRONMENT=production` or the
+database is not a local SQLite file. It keeps each account's id, permissions (staff = admin, member = not admin), API token and
+linked data, uses the normal scrypt hasher, and only sets a password when the stored hash does not already match, so running it
+again changes nothing and signs nobody out. It also takes over the previous demo logins `stefanu@bsp.se` and `stefanu@saab.se`.
+Set `BSP_DEV_STAFF_PASSWORD` / `BSP_DEV_MEMBER_PASSWORD` to use other passwords.
+
+A member row is the **company** in this backend, so the Saab row keeps `name = "Saab"` (matching and profile use it). The person
+shown in the interface (Anna Johansson, her job title, the greeting "Anna" and the initials AJ) comes from the demo profile data in
+`frontend/src/member/data.js`; in live content mode the backend has no person-name field, so no personal name is shown there.
+For the frontend dev server use an allowed origin (default port 5173).
+
 Not built: password reset by email, single sign-on, two-factor. Run behind HTTPS in any real deployment.
 
 **CORS (for the frontend).** Browsers may only call the API from origins in `BSP_CORS_ORIGINS`. The default

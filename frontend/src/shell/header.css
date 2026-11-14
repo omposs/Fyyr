@@ -33,3 +33,11 @@
   .app-tb .mem-search{max-width:none}
 }
 @media print{.app-hd,.app-tb{display:none!important}}
+
+/* content-mode indicator (demo / live) */
+.mode-pill{display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:0 12px;border-radius:99px;border:1px solid var(--line);background:rgba(255,255,255,.75);font:600 12.5px/1 var(--sans);color:var(--muted);cursor:pointer}
+span.mode-pill{cursor:default}
+.mode-pill:hover{background:#fff}
+.mode-pill i{width:7px;height:7px;border-radius:50%;background:#d9a300}
+.mode-pill[data-mode=live] i{background:#0b7a4b}
+@media(max-width:640px){.mode-pill{padding:0;width:36px;justify-content:center}.mode-pill i{width:10px;height:10px}.mode-pill span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}}

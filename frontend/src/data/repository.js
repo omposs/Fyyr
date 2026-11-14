@@ -1,5 +1,6 @@
 import { OPPS, fmt } from '../demoData.js'
 import { DEMO_OPPORTUNITIES } from './demoOpportunities.js'
+import { DEMO_RICH } from './demoRich.js'
 import { DEMO_ENABLED, demoReference } from './config.js'
 
 // ============================================================================================
@@ -23,7 +24,7 @@ const URG_LABEL = { events: 'Registration closes', funding: 'Application deadlin
 const MAP = { ai: ['AI'], security: ['Cybersecurity'], offshore: ['Maritime technology'], energy: ['Energy'], manufacturing: ['Advanced manufacturing'], growth: ['International growth'], eu: ['International growth'], deeptech: ['Research collaboration'] }
 const SECT = { ai: 'Software & IT', security: 'Software & IT', cloud: 'Software & IT', offshore: 'Maritime & offshore', energy: 'Energy', manufacturing: 'Advanced manufacturing' }
 const publicSources = () => OPPS.map(o => ({
-  ...o, mcat: o.cat, provider: o.source,
+  ...o, mcat: o.cat, provider: o.source, public: true, // curated, sourced and approved for public display
   online: /^online/i.test(o.where),
   kind: o.cat === 'knowledge' ? 'Course' : undefined,
   tags: uniq([...o.topics.flatMap(t => MAP[t] || []), ...(o.cat === 'funding' ? ['Funding'] : [])]),
@@ -47,7 +48,7 @@ export function materialiseDemo(r, ref = demoReference()) {
     dateText: r.dateText ?? (start ? fmt(start) : pubAgo != null ? `Published ${fmt(day(-pubAgo))}` : ''),
   }
 }
-const demoSource = () => DEMO_OPPORTUNITIES.map(r => materialiseDemo(r))
+const demoSource = () => DEMO_OPPORTUNITIES.map(r => ({ ...materialiseDemo(DEMO_RICH[r.id] ? { ...r, facts: [...(r.facts || []), ...DEMO_RICH[r.id]] } : r), public: true })) // explicitly public fictional examples
 
 const adapters = [publicSources, ...(DEMO_ENABLED ? [demoSource] : [])]
 export const registerAdapter = fn => { adapters.push(fn) }

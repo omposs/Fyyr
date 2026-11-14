@@ -166,6 +166,9 @@ class MonitoredItem(Base):
     location: Mapped[str | None] = mapped_column(String(200))
     tags: Mapped[list] = mapped_column(JSON, default=list)
     ingested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    # Staff approval for ANONYMOUS display (app/api/public.py). Ingestion never sets it. NULL (older rows) and False are both not public:
+    # an external record being on a public website does not make it approved for display here.
+    public_approved: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=None)
 
 
 class Match(Base):

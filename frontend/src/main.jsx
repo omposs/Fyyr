@@ -8,7 +8,7 @@ import './styles.css'
 function Root() {
   const [path, setPath] = useState(location.pathname)
   useEffect(() => {
-    const on = () => { setPath(location.pathname); window.scrollTo(0, 0) }
+    const on = () => { setPath(location.pathname); if (!location.hash) window.scrollTo(0, 0) } // a #section keeps its own scroll target
     window.addEventListener('popstate', on)
     setPath(location.pathname) // child effects (redirects) run before this listener exists
     return () => window.removeEventListener('popstate', on)

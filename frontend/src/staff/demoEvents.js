@@ -1,11 +1,17 @@
 import { MEMBER_OPPS, isPark, matchesQ } from '../member/data.js'
 import { groupTopic, OPP_TOPICS } from './topics.js'
+import { CO } from '../network/data.js'
+import { CATEGORIES } from '../events/categories.js'
+import { listEvents } from '../events/eventStore.js'
 
 // ============================================================================================
 // SIMULATED SAMPLE. Not real member activity.
-// 14 fictional "Demo company" accounts and ~180 days of generated events, built with a fixed random seed so the
-// numbers are stable. Result counts come from the same search function the member area uses, so "no results"
-// is real for this catalogue. Every event carries src:'demo'. No real Blue Science Park member appears here.
+// 14 REAL Blue Science Park member companies (names and descriptions verified against their official pages, see data/verifiedNetwork.js)
+// with SIMULATED activity: ~180 days of generated events built with a fixed random seed so the numbers are stable. The interests, sector
+// grouping, consent flags and every search, view, save and click below are invented for the demo. No real company did any of it.
+// Result counts come from the same search function the member area uses, so "no results" is real for this catalogue. Every event
+// carries src:'demo' and env:'simulated'. Activity on the fictional demo opportunities (events/demoWorkflow.js) is generated separately,
+// from the records that exist at that moment (see seededActivity).
 // ============================================================================================
 const DAY = 864e5
 const rng = seed => { let a = seed; return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296 } }
@@ -19,19 +25,20 @@ const PREF = {
 }
 const WANTS = { 'Maritime & offshore': ['testing', 'funding', 'events'], Energy: ['funding', 'testing'], 'Software & IT': ['knowledge', 'events', 'funding'], 'Advanced manufacturing': ['testing', 'funding', 'people'], 'Health & life science': ['funding', 'testing', 'knowledge'] }
 
-// share: simulated consent to let staff see this company's own activity summary. Everyone else stays aggregate-only.
-// [sector, shares its own summary, activity level, science park id, fictional name]. Names are invented; none is a real organisation.
+// [network id, simulated sector group, shares its own summary (simulated consent), activity level]. The company IDENTITY (name, description,
+// affiliation) is the verified network record; the sector grouping, interests and consent are simulated.
 const SPEC = [
-  ['Maritime & offshore', 0, 1.2, 'bsp', 'Skärgård Marine Systems'], ['Maritime & offshore', 1, 1, 'bsp', 'Blekinge Tidewater Labs'], ['Energy', 0, 1, 'bsp', 'Karlskrona Grid Works'],
-  ['Software & IT', 1, 1.3, 'bsp', 'Nordhamn Software'], ['Software & IT', 1, .9, 'lsp', 'Östra Data Studio'], ['Advanced manufacturing', 0, 1, 'lsp', 'Linden Precision Parts'],
-  ['Maritime & offshore', 0, .8, 'ksp', 'Kalmarsund Offshore Tech'], ['Energy', 0, 1.1, 'ksp', 'Ölandsvind Energy'], ['Health & life science', 1, .9, 'lsp', 'Vättern Clinical Software'],
-  ['Software & IT', 0, 1, 'jsp', 'Tabergs Cloud Services'], ['Advanced manufacturing', 1, 1.2, 'jsp', 'Gjuteri Digital'], ['Maritime & offshore', 1, 1, 'cv', 'Göteborg Wave Instruments'],
-  ['Energy', 0, .8, 'cv', 'Hav Storage Systems'], ['Software & IT', 0, 1.1, 'jsp', 'Kronoberg AI Works'],
+  ['saab', 'Maritime & offshore', 0, 1.2], ['njordx', 'Maritime & offshore', 1, 1], ['affarsverken', 'Energy', 0, 1],
+  ['cleura', 'Software & IT', 1, 1.3], ['dnvcyber', 'Software & IT', 1, .9], ['roxtec', 'Advanced manufacturing', 0, 1],
+  ['oht', 'Maritime & offshore', 0, .8], ['addsecure', 'Energy', 0, 1.1], ['spirius', 'Advanced manufacturing', 1, .9],
+  ['techinova', 'Energy', 0, 1], ['embeddedart', 'Advanced manufacturing', 1, 1.2], ['ericsson', 'Software & IT', 1, 1],
+  ['telenor', 'Software & IT', 0, .8], ['veridens', 'Software & IT', 1, 1.1],
 ]
-export const DEMO_COMPANIES = SPEC.map(([sector, share, level, park, fname], i) => {
+export const DEMO_COMPANIES = SPEC.map(([netId, sector, share, level], i) => {
   const id = 'dc' + String(i + 1).padStart(2, '0')
   const top = Object.entries(PREF[sector]).sort((a, b) => b[1] - a[1]).map(x => x[0])
-  return { id, name: fname, park, isDemo: true, sector, share: !!share, level, wants: WANTS[sector], interests: top.slice(i % 2, (i % 2) + 2) }
+  const real = CO[netId]
+  return { id, netId, name: real.name, park: real.park, simulated: true, sector, share: !!share, level, wants: WANTS[sector], interests: top.slice(i % 2, (i % 2) + 2) }
 })
 
 const TERMS = {
@@ -53,7 +60,49 @@ const TERMS = {
 const TOPIC_CAT = { 'Testing environments': 'testing', 'Funding & grants': 'funding', 'Events & networking': 'events', 'Partners & expertise': 'people' }
 
 let cache
+// Simulated engagement with the fictional demo opportunities (events/demoWorkflow.js). Deterministic: a fixed seed per record, so the
+// same records give the same numbers. It is computed from the records that exist now, so totals, trends, rankings and distinct-company
+// counts always come from this activity, never from separate hardcoded figures. Only PUBLISHED records get activity, and only from
+// their publication date; a draft you publish later starts at zero.
+const hash = str => { let h = 2166136261; for (const ch of str) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0 }
+export function seededActivity(now = new Date()) {
+  const today0 = new Date(now); today0.setHours(0, 0, 0, 0)
+  const key = today0.getTime()
+  const out = []
+  const recs = listEvents().filter(e => e.demoSeed && e.status === 'published').sort((a, b) => (a.id < b.id ? -1 : 1))
+  for (const rec of recs) {
+    const m = rec.demoSeed.meta || {}
+    const rand = rng(hash(rec.id))
+    const start0 = new Date(rec.publishedAt || now); start0.setHours(0, 0, 0, 0)
+    const days = Math.max(0, Math.round((key - start0.getTime()) / DAY))
+    const cat = CATEGORIES[rec.category || 'events'].mcat
+    let n = 0
+    for (let d = 0; d <= days; d++) {
+      const dayStart = start0.getTime() + d * DAY, age = days - d
+      const weekend = [0, 6].includes(new Date(dayStart).getDay())
+      for (const c of DEMO_COMPANIES) {
+        const fit = (m.sectors || []).includes(c.sector) ? 2.4 : .6
+        const p = Math.min(.9, .05 * (m.pop || 0) * c.level * fit * Math.exp(-age / 60) * (weekend ? .15 : 1))
+        const r1 = rand(), r2 = rand(), r3 = rand(), r4 = rand()
+        if (r1 >= p) continue
+        const sid = `${c.id}-${rec.id}-${d}`
+        let t = dayStart + (9 + r4 * 8) * 36e5
+        const push = (type, page, dt) => { t += dt; if (t <= now.getTime()) out.push({ id: `sa-${rec.id}-${n++}`, ts: Math.round(t), type, company: c.id, sector: c.sector, src: 'demo', env: 'simulated', sid, oppId: rec.id, cat, page }) }
+        push('shown', 'park', 0)
+        push('view', 'detail', 30e3 + r2 * 60e3)
+        if (r2 < (m.save || 0)) push('save', 'detail', 20e3)
+        if (r3 < (m.click || 0)) push('click_source', 'detail', 15e3)
+      }
+    }
+  }
+  return out
+}
+
 export function demoEvents(now = new Date()) {
+  return [...baseDemoEvents(now), ...seededActivity(now)].sort((a, b) => a.ts - b.ts)
+}
+
+function baseDemoEvents(now = new Date()) {
   const today0 = new Date(now); today0.setHours(0, 0, 0, 0)
   const key = today0.getTime()
   if (cache?.key === key) return cache.events
@@ -62,7 +111,8 @@ export function demoEvents(now = new Date()) {
   const wpick = (items, w) => { const t = items.reduce((s, x) => s + w(x), 0); let r = rand() * t; for (const x of items) { r -= w(x); if (r <= 0) return x } return items[items.length - 1] }
   const out = []
   const N = 180
-  const countHits = term => MEMBER_OPPS.filter(o => matchesQ({ o }, term))
+  const FIXTURES = () => MEMBER_OPPS.filter(o => !o.staffEvent)
+  const countHits = term => FIXTURES().filter(o => matchesQ({ o }, term))
   const hitCache = new Map()
   const hits = term => { if (!hitCache.has(term)) hitCache.set(term, countHits(term)); return hitCache.get(term) }
   let n = 0
@@ -95,10 +145,10 @@ export function demoEvents(now = new Date()) {
           step('search', { term, topic: groupTopic(term), resultCount: found.length, cat: 'all', page: 'overview' })
           for (const o of found.slice(0, 3)) step('shown', { oppId: o.id, cat: o.mcat, page: 'search' }, 700)
           pool = found; opp = found.length && rand() < .62 ? wpick(found, o => (o.id === 'o2' ? 3 : isPark(o) ? 4 : 1)) : null
-          if (!found.length && rand() < .08) { const f = MEMBER_OPPS.filter(o => OPP_TOPICS.get(o.id).includes(topic)); opp = f.length ? pick(f) : null }
+          if (!found.length && rand() < .08) { const f = FIXTURES().filter(o => OPP_TOPICS.get(o.id).includes(topic)); opp = f.length ? pick(f) : null }
         } else {
           const cat = TOPIC_CAT[topic] || 'knowledge'
-          pool = MEMBER_OPPS.filter(o => o.mcat === cat && (OPP_TOPICS.get(o.id).includes(topic) || rand() < .3))
+          pool = FIXTURES().filter(o => o.mcat === cat && (OPP_TOPICS.get(o.id).includes(topic) || rand() < .3))
           for (const o of pool.slice(0, 3)) step('shown', { oppId: o.id, cat, page: cat }, 700)
           opp = pool.length && rand() < .55 ? wpick(pool, o => (o.id === 'o2' ? 3 : isPark(o) ? 4 : 1)) : null
         }

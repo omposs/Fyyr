@@ -6,6 +6,7 @@ import { getEvent, grantAccess, revokeAccess, setSharing, useStaffEvents, fmtSho
 import { audienceText, audienceBadge, canManageAudience, hasGrants, isMemberEvent } from './access.js'
 import { COMPANY_LIST, CONTACTS, maskEmail, resolveAudience } from './contacts.js'
 import { markAllRead, useNotifications } from './notify.js'
+import { markSharedSeen } from './notifications.js'
 import { buildInvitation } from './invitation.js'
 import { delivery } from './delivery.js'
 import { toOpp } from './sync.js'
@@ -120,7 +121,7 @@ function SharedQueue() {
   const events = useStaffEvents()
   const notes = useNotifications()
   const [q, setQ] = useState('')
-  useEffect(() => { markAllRead() }, [])
+  useEffect(() => { markAllRead(); markSharedSeen() }, [])
   const list = sharedEvents(events).filter(e => !q.trim() || (e.title + ' ' + e.owner.company).toLowerCase().includes(q.trim().toLowerCase()))
     .sort((a, b) => (b.shareNotifiedAt || 0) - (a.shareNotifiedAt || 0))
   const fresh = new Set(notes.filter(n => !n.read).map(n => n.eventId))

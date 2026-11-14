@@ -4,6 +4,7 @@ import { getSession } from '../auth.js'
 import { Dialog } from '../member/ui.jsx'
 import { ALL_TOPICS, BSP_CONTACT, COMPANIES, CONNECTIONS, CO, PARKS, SCOPE_LABEL, SOURCE_LABEL, STATUSES, SUGGESTIONS, TYPE_LABEL, evidenceOf, fmtD, isReviewed, parkCounts, reviewIssues, routesOf, scopeOf, stale, suggestionStatus, unique, verifyNote } from './data.js'
 import { useSaved } from './store.js'
+import { ParkBadge, parkTone } from './ParkBadge.jsx'
 import '../events/events.css'
 import './network.css'
 
@@ -37,10 +38,12 @@ function Facts({ facts, empty }) {
 }
 // Only a confirmed affiliation is shown as a relationship. Anything else is shown as unconfirmed, never as fact.
 const affText = c => (c.affiliation.status === 'confirmed' ? `${c.affiliation.relation} · ${PARKS[c.park].name}` : c.affiliation.status === 'demo' ? `Fictional demo · placed in ${PARKS[c.park].name}` : `${PARKS[c.park].name} not confirmed`)
+const relOf = c => (c.affiliation.status === 'confirmed' ? c.affiliation.relation : c.affiliation.status === 'demo' ? 'Fictional demo' : 'Affiliation not confirmed')
+const ParkOf = ({ c }) => <span className="nw-co-line"><ParkBadge id={c.park} confirmed={['confirmed', 'demo'].includes(c.affiliation.status)} /><small>{relOf(c)}</small></span>
 const AffBadge = ({ c }) => { const [cls, l] = AFF[c.affiliation.status]; return <span className={'nw-aff ' + cls}>{c.affiliation.status === 'confirmed' ? c.affiliation.relation : l}</span> }
 const Initials = ({ name, cls = '' }) => <span className={'nw-mark ' + cls} aria-hidden="true">{name.replace(/\(.*?\)/g, '').split(/[\s&]+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()}</span>
 // Official logos are not stored (none was verified for reuse), so every park shows the same initials mark.
-const ParkMark = ({ p }) => (p.logo ? <img className="nw-mark" src={p.logo} alt="" /> : <span className="nw-mark" aria-hidden="true">{p.short}</span>)
+const ParkMark = ({ p }) => (p.logo ? <img className="nw-mark" src={p.logo} alt="" /> : <span className="nw-mark" data-tone={parkTone(p.id)} aria-hidden="true">{p.short}</span>)
 
 // ---------- company profile column (inside the details panel) ----------
 function Profile({ c }) {
@@ -48,7 +51,7 @@ function Profile({ c }) {
   return (
     <section className="nw-prof" aria-label={c.name}>
       <h4 className="nw-cn">{c.name}</h4>
-      <p className="nw-park">{affText(c)}</p>
+      <p className="nw-park"><ParkOf c={c} /></p>
       <p>{c.summary}</p>
       {c.website ? <p className="fine"><a href={c.website} target="_blank" rel="noopener noreferrer">Official website<Icon n="ext" size={12} /></a></p> : <p className="fine">No website: this company is fictional.</p>}
       <div className="nw-affbox">
@@ -150,21 +153,29 @@ function Card({ s, store, onOpen }) {
   const saved = store.saved[s.id]
   const vn = verifyNote(s)
   const name = `${a.name} and ${b.name}`
+  const brings = (s.parts || '').split(/(?<=\.)\s+/).filter(Boolean)
+  const tags = (s.topics || []).slice(0, 3)
   return (
-    <li className={'nw-card' + (saved?.status === 'Dismissed' ? ' dim' : '')}>
+    <li className={'nw-card nw-conn' + (saved?.status === 'Dismissed' ? ' dim' : '')}>
       <div className="nw-top">
         <span className={'nw-label type-' + s.type}>{TYPE_LABEL[s.type]}</span>
         {s.isDemo ? <span className="pill nw-demo">Demo</span> : vn.length > 0 && <span className="nw-verify">Needs verification</span>}
-        <span className="nw-status">{suggestionStatus(s)}{saved && <> · Saved: {saved.status}</>}</span>
+        {saved && <span className="nw-status">Saved: {saved.status}</span>}
       </div>
       <h3 className="nw-names">
-        <span><b>{a.name}</b><small>{affText(a)}</small></span>
+        <span><b>{a.name}</b><ParkOf c={a} /></span>
         <span className="nw-x" aria-hidden="true">↔</span><span className="sr"> and </span>
-        <span><b>{b.name}</b><small>{affText(b)}</small></span>
+        <span><b>{b.name}</b><ParkOf c={b} /></span>
       </h3>
-      <p className="nw-expl">{s.explore}</p>
+      {s.theme && <p className="nw-theme">{s.theme}</p>}
+      <p className="nw-expl">{s.why || s.explore}</p>
+      <dl className="nw-det">
+        {brings.length > 0 && <div><dt>Each brings</dt><dd>{brings.map(x => <span key={x}>{x}</span>)}</dd></div>}
+        {s.propose && <div><dt>Potential collaboration</dt><dd>{s.propose}</dd></div>}
+        {tags.length > 0 && <div><dt>Shared focus</dt><dd className="nw-tags">{tags.map(t => <span key={t} className="pill">{t}</span>)}</dd></div>}
+      </dl>
       <div className="nw-act">
-        <button type="button" className="btn btn-glass btn-sm" onClick={() => onOpen(s)}>View details<span className="sr">: {name}</span></button>
+        <button type="button" className="btn btn-glass btn-sm" onClick={() => onOpen(s)}>Explore connection<span className="sr">: {name}</span></button>
         <SaveBtn s={s} store={store} name={name} />
       </div>
     </li>
@@ -225,14 +236,12 @@ function Discover({ store, openId, clearOpen }) {
           <select id="nw-fy" value={f.type} onChange={e => set({ type: e.target.value })}><option value="all">All</option><option value="shared">{TYPE_LABEL.shared}</option><option value="complementary">{TYPE_LABEL.complementary}</option></select></div>
       </section>
 
-      <Coverage />
-
       <section aria-labelledby="nw-pot-h">
         <h2 className="mem-sec" id="nw-pot-h">Suggested connections</h2>
-        <p className="mem-result" role="status">{plural(shown.length, 'suggestion', 'suggestions')}{dirty && ` of ${reviewed.length} after filters`}. Inferred by hand from public pages; there is no match score.</p>
+        <p className="mem-result" role="status">{plural(shown.length, 'suggestion', 'suggestions')}{dirty && ` of ${reviewed.length} after filters`}.</p>
         {dirty && <button type="button" className="link-btn" onClick={reset}>Reset filters</button>}
         {CONNECTIONS.length > 0 && <ul className="nw-docs">{CONNECTIONS.map(x => <li key={x.a + x.b}><b>{CO[x.a].name} and {CO[x.b].name}</b>: {x.kind}. {x.t} <a href={x.u} target="_blank" rel="noopener noreferrer">Source</a> · {fmtD(x.d)}</li>)}</ul>}
-        {shown.length ? <ul className="nw-list">{shown.map(s => <Card key={s.id} s={s} store={store} onOpen={setOpen} />)}</ul>
+        {shown.length ? <ul className="nw-list nw-conn-list">{shown.map(s => <Card key={s.id} s={s} store={store} onOpen={setOpen} />)}</ul>
           : <div className="mem-empty"><strong>No supported suggestion{dirty ? ' with these filters' : ''}</strong><p>{dirty ? 'Try removing a filter.' : 'The reviewed pages give no practical reason to connect these companies. The sample is small.'}</p></div>}
       </section>
 
@@ -406,7 +415,7 @@ function SavedTab({ store, go }) {
   return (
     <div className="nw-stack">
       <p className="fine">Internal to staff, saved in this browser (prototype). Saving does not contact anyone.</p>
-      <ul className="nw-list">{items.map(s => <Card key={s.id} s={s} store={store} onOpen={setOpen} />)}</ul>
+      <ul className="nw-list nw-conn-list">{items.map(s => <Card key={s.id} s={s} store={store} onOpen={setOpen} />)}</ul>
       {open && <CompareDialog s={open} store={store} onClose={() => setOpen(null)} />}
     </div>
   )
@@ -425,7 +434,7 @@ export default function NetworkPage() {
   const toSuggestion = s => { setOpenId(s.id); setTab('discover') }
   return (
     <div className="mem-page">
-      <p className="fine nw-intro">Explore connections inside Blue Science Park and with companies in four other ecosystems. Verified records link to their public source. Fyyr member activity is never used here.</p>
+      <p className="fine nw-intro">Suggested connections inside Blue Science Park and with companies in four other ecosystems, drawn from public sources. Collaboration ideas are suggestions, not existing partnerships.</p>
       <div className="eseg nw-tabs" role="group" aria-label="Network views">
         {[['discover', 'Find partners'], ['parks', 'Science parks'], ['companies', 'Companies'], ['compare', 'Compare ecosystems'], ['saved', 'Saved suggestions' + (n ? ` (${n})` : '')]].map(([id, l]) => <button key={id} type="button" aria-pressed={tab === id} onClick={() => setTab(id)}>{l}</button>)}
       </div>

@@ -58,6 +58,15 @@ function catProps(e) {
 }
 
 export function toOpp(e0, orgs, viewer) {
+  const e = norm(e0)
+  const o = buildOpp(e0, orgs, viewer)
+  // Demo records may carry extra detail rows (`rich`: [[label, text]]) shown in the detail popup after the category's own facts.
+  const rich = facts(e.rich || [])
+  if (rich.length) o.facts = [...(o.facts || []), ...rich]
+  // Records from the demo workflows (events/demoWorkflow.js, data/fixtures/saabOpportunities.js) are fictional: flagged demo, and they offer no working link.
+  return e.demoSeed || e.demoMember ? { ...o, demo: true, isDemo: true, demoSeed: !!e.demoSeed, url: undefined } : o
+}
+function buildOpp(e0, orgs, viewer) {
   const e = norm(e0) // an unsaved draft has no ownership or access fields yet
   const byId = Object.fromEntries(orgs.map(o => [o.id, o]))
   const organiser = e.organiser ? byId[e.organiser] || null : null

@@ -1,12 +1,22 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Icon } from '../Icons.jsx'
+import NotifMenu from '../shell/NotifMenu.jsx'
+import { ICON, ago, seedDemoNotifications, useAccountNotifications } from '../events/notifications.js'
 import { useNotifPrefs } from '../Dashboard.jsx'
-import { clearSession, getSession, navigate } from '../auth.js'
+import { getSession, navigate, signOut } from '../auth.js'
+import { useContentMode } from '../data/mode.js'
+import { errorText } from '../api/client.js'
+import { toProfile, useLiveContent, useSaveInterests, withDemoPark } from './live.js'
+import ChatDialog from './ChatDialog.jsx'
+import { seedDemoWorkflow } from '../events/demoWorkflow.js'
+import SearchBar from './SearchBar.jsx'
+import { CAT_COLOR } from '../staff/colors.js'
+import ModeSwitch from '../shell/ModeSwitch.jsx'
 import { MCATS, MCAT, OPP_BY_ID, byDate, hubKind, isPark, matchesQ, parkOrder, parkPicks, rank } from './data.js'
 import { setTrackContext, track } from '../staff/events.js'
-import { useMemberStore, dedupe } from './store.js'
+import { useMemberStore, dedupe, seedSavedOnce } from './store.js'
 import { useSyncedEvents } from '../events/sync.js'
-import { viewerFromSession } from '../events/access.js'
+import { memberCompany, viewerFromSession } from '../events/access.js'
 import { EventsRouter, memberCtx } from '../staff/EventsPage.jsx'
 import { CATEGORIES, LEGACY_MY, MY_OPPS } from '../events/categories.js'
 import { Detail, InterestsEditor, OppCard, ParkRow, TopCard } from './ui.jsx'
@@ -14,6 +24,8 @@ import Profile from './Profile.jsx'
 import { AccountLink, AppHeader, Toolbar } from '../shell/AppHeader.jsx'
 import './member.css'
 
+// Saab demo account: one event, funding call, testbed, knowledge item and partner listing from the shared records, plus one of Saab's own.
+const INITIAL_SAVES = ['ev-demo-autonomy-day', 'd4', 'd7', 'd11', 'd16', 'ev-saab-maritime-collab']
 const PARK_CONTACT = 'https://www.bluesciencepark.se/kontakt/'
 const NAV = [
   { id: 'overview', label: 'Overview', icon: 'layers' },
@@ -37,6 +49,12 @@ const FILTERS = {
   people: [{ k: 'type', label: 'Type', opts: [['all', 'Experts and partners'], ['experts', 'Experts'], ['collab', 'Partner companies']], test: (x, v) => x.o.cat === v }],
 }
 const SORTS = { match: 'Strongest match', soon: 'Soonest date', az: 'Name A to Z' }
+// Live records (from the API) have no format/type fields, so live mode keeps only the date filters; demo mode keeps all of FILTERS.
+const WINDOW = [['all', 'Any time'], ['30', 'Within 30 days'], ['90', 'Within 90 days']]
+const LIVE_FILTERS = {
+  events: [{ k: 'window', label: 'Date', opts: WINDOW, test: (x, v) => !!x.u && x.u.days <= +v }],
+  funding: FILTERS.funding, testing: [], knowledge: [], people: [],
+}
 const SORT_KEYS = { events: ['match', 'soon'], funding: ['match', 'soon'], testing: ['match', 'soon'], knowledge: ['match', 'soon'], people: ['match', 'az'] }
 
 function Empty({ title, children }) {
@@ -71,7 +89,7 @@ function Overview({ c, r }) {
   // Park-organised items (explicit publisherId) are shown in their own section and are not repeated in Top matches.
   const park = parkPicks(r.live, 3)
   const rest = r.live.filter(x => !park.includes(x))
-  const top = r.personal ? rest.filter(x => x.strength).slice(0, 3) : [...rest].sort(byDate).slice(0, 3)
+  const top = r.server ? rest.slice(0, 3) : r.personal ? rest.filter(x => x.strength).slice(0, 3) : [...rest].sort(byDate).slice(0, 3)
   const topKey = [...park, ...top].map(x => x.o.id).join()
   useEffect(() => { c.shown(topKey.split(',').filter(Boolean), 'overview') }, [topKey]) // eslint-disable-line react-hooks/exhaustive-deps
   const strong = r.live.filter(x => x.strength === 'strong').length
@@ -85,7 +103,8 @@ function Overview({ c, r }) {
         <header className="mem-hello">
           <h2>{hello}, {profile.name.split(' ')[0] || 'there'}</h2>
           <p>{r.personal ? 'Here are the opportunities most relevant to your company.' : 'Here are upcoming opportunities from across the park.'}
-            {r.personal && <span className="muted"> {plural(strong, 'strong match', 'strong matches')} · {plural(soon, 'deadline', 'deadlines')} in the next 2 weeks.</span>}</p>
+            {r.personal && !r.server && <span className="muted"> {plural(strong, 'strong match', 'strong matches')} · {plural(soon, 'deadline', 'deadlines')} in the next 2 weeks.</span>}
+            {r.server && <span className="muted"> {plural(r.live.length, 'recommendation', 'recommendations')} · {plural(soon, 'deadline', 'deadlines')} in the next 2 weeks.</span>}</p>
         </header>
 
         {!r.personal && <p className="notice">This is a general discovery feed, not personalised. <button type="button" className="auth-link inline" onClick={c.openInterests}>Add interests to personalise</button></p>}
@@ -139,7 +158,7 @@ function CategoryPage({ id, c, r, q }) {
   const [open, setOpen] = useState(false)
   const [f, setF] = useState({})
   const panel = useId()
-  const filters = FILTERS[id]
+  const filters = r.server ? LIVE_FILTERS[id] : FILTERS[id]
   const active = filters.filter(x => f[x.k] && f[x.k] !== 'all')
   const base = r.live.filter(x => x.o.mcat === id)
   let items = base.filter(x => matchesQ(x, q) && active.every(a => a.test(x, f[a.k])))
@@ -162,7 +181,7 @@ function CategoryPage({ id, c, r, q }) {
       <div className="mem-bar">
         <p className="mem-result" role="status">{filtered ? `${items.length} of ${plural(base.length, 'opportunity', 'opportunities')}` : plural(items.length, 'opportunity', 'opportunities')}{q && <> matching “{q}”</>}</p>
         <div className="mem-bar-r">
-          <button type="button" className="btn btn-glass btn-sm" aria-expanded={open} aria-controls={panel} onClick={() => setOpen(o => !o)}>Filters{active.length > 0 && <b className="mem-badge">{active.length}</b>}</button>
+          {filters.length > 0 && <button type="button" className="btn btn-glass btn-sm" aria-expanded={open} aria-controls={panel} onClick={() => setOpen(o => !o)}>Filters{active.length > 0 && <b className="mem-badge">{active.length}</b>}</button>}
           <label className="sort">Sort by
             <select className="sel" value={sort} onChange={e => setSort(e.target.value)}>{keys.map(k => <option key={k} value={k}>{SORTS[k]}</option>)}</select>
           </label>
@@ -215,7 +234,8 @@ function SearchResults({ c, r, q }) {
   useEffect(() => { c.shown(shownKey.split(',').filter(Boolean), 'search') }, [shownKey]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="mem-page">
-      <p className="mem-result" role="status">{plural(hits.length, 'result', 'results')} for “{q}”</p>
+      <h2 className="mem-side-h">Search results for “{q}”</h2>
+      <p className="mem-result" role="status">{plural(hits.length, 'result', 'results')} across all categories</p>
       <Chips value={cat} onChange={setCat} items={[['all', 'All', hits.length], ...MCATS.map(m => [m.id, m.short, hits.filter(x => x.o.mcat === m.id).length])]} />
       {items.length ? <ul className="cards">{items.map(x => <OppCard key={x.o.id} x={x} c={c} />)}</ul> : <Empty title="No results">Try fewer or different words, or browse a category from the sidebar.</Empty>}
     </div>
@@ -240,42 +260,38 @@ function Saved({ c, r, q }) {
 }
 
 // ---------- shell ----------
-function Bell({ r, c }) {
-  const [open, setOpen] = useState(false)
-  const wrap = useRef(null)
-  const id = useId()
-  useEffect(() => {
-    if (!open) return
-    const key = e => e.key === 'Escape' && (setOpen(false), wrap.current?.querySelector('button')?.focus())
-    const down = e => !wrap.current?.contains(e.target) && setOpen(false)
-    document.addEventListener('keydown', key); document.addEventListener('pointerdown', down)
-    return () => { document.removeEventListener('keydown', key); document.removeEventListener('pointerdown', down) }
-  }, [open])
-  const soon = r.live.filter(x => x.u && x.u.kind === 'deadline' && x.u.days <= 14).sort((a, b) => a.u.days - b.u.days).slice(0, 3)
-  return (
-    <div className="bell-wrap" ref={wrap}>
-      <button type="button" className="icon-btn" aria-label="Notifications" aria-expanded={open} aria-controls={id} onClick={() => setOpen(o => !o)}><Icon n="bell" />{soon.length > 0 && <i className="dot" />}</button>
-      {open && (
-        <div className="pop mem-pop" id={id} role="region" aria-label="Notifications">
-          <strong>Closing soon</strong>
-          {soon.length ? <ul className="mem-dl">{soon.map(x => <li key={x.o.id}><button type="button" className="mem-title" onClick={() => { setOpen(false); c.openDetail(x.o.id) }}>{x.o.title}</button><span className="when when-soon">{x.u.label}</span></li>)}</ul> : <p className="fine">Nothing is closing in the next 2 weeks.</p>}
-          <p className="fine">Preview only: nothing is delivered in this demo.</p>
-          <a href="/member/profile" className="mem-more" onClick={e => { e.preventDefault(); setOpen(false); c.go('/member/profile') }}>Notification preferences</a>
-        </div>
-      )}
-    </div>
-  )
+function Bell({ c, live }) {
+  const n = useAccountNotifications({ audience: 'member', live })
+  const items = n.items.map(x => ({ id: x.id, icon: ICON[x.type] || 'bell', title: x.title, detail: x.detail, time: ago(x.ts), timeFull: new Date(x.ts).toLocaleString('en-GB'), unread: x.unread,
+    run: () => { n.markRead(x.id); x.target.kind === 'opp' ? c.openDetail(x.target.id) : c.go(x.target.path) } }))
+  return <NotifMenu items={items} unread={n.unread} onMarkAll={n.markAllRead} empty={live ? 'No notifications yet. Notifications are not connected to the live service, so nothing is shown here.' : 'No notifications yet.'} footer={{ label: 'Notification preferences', run: () => c.go('/member/profile') }} />
 }
 
 export default function MemberApp({ path }) {
   const session = getSession()
-  const store = useMemberStore(session?.email)
+  const mode = useContentMode() // 'demo' (original fixtures) or 'live' (backend API); independent of how you logged in
+  const isLive = mode === 'live'
+  // Fictional demo records and a few first saves, each written once (idempotent, never overwriting what the user changed).
+  useState(() => {
+    seedDemoWorkflow(); seedDemoNotifications()
+    const mail = String(session?.email || '').toLowerCase()
+    if (session?.role === 'member' && memberCompany(mail).id === 'saab') seedSavedOnce(mail, INITIAL_SAVES.filter(id => OPP_BY_ID[id] || id.startsWith('ev-')))
+    return 1
+  })
+  const demoStore = useMemberStore(session?.email)
+  const live = useLiveContent(isLive)
+  const saveInts = useSaveInterests(live.profile, live.reload)
   const np = useNotifPrefs()
-  const { profile } = store
   const now = useMemo(() => new Date(), [])
   const viewer = viewerFromSession()
   const synced = useSyncedEvents(viewer) // events this person may see (public, own company, explicitly granted) join the opportunity list
-  const r = useMemo(() => rank(profile, now), [profile.interests, profile.sector, profile.goals, profile.wants, now, synced]) // eslint-disable-line react-hooks/exhaustive-deps
+  const demoR = useMemo(() => rank(demoStore.profile, now), [demoStore.profile.interests, demoStore.profile.sector, demoStore.profile.goals, demoStore.profile.wants, now, synced]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Live mode: the profile comes from the server and edits go to the server (never demo ids). Saved items stay local to this browser.
+  const profile = isLive ? toProfile(demoStore.profile, session, live.profile) : demoStore.profile
+  const store = isLive ? { ...demoStore, profile } : demoStore
+  const r = isLive ? withDemoPark(live.r, demoR) : demoR
+  const [chatOpen, setChatOpen] = useState(false)
+  const [chat, setChat] = useState({ msgs: [], sid: null })
   const slug = path.replace(/^\/member\/?/, '').replace(/\/$/, '') || 'overview'
   const head = slug.split('/')[0]
   const sub = slug.split('/').slice(1).join('/')
@@ -295,7 +311,7 @@ export default function MemberApp({ path }) {
 
   // ---- analytics events (what staff see in aggregate). Recorded once per real action, never per render. ----
   setTrackContext({ sector: profile.sector })
-  const catOf = id => OPP_BY_ID[id]?.mcat
+  const catOf = id => OPP_BY_ID[id]?.mcat ?? r.all.find(x => x.o.id === id)?.o.mcat
   const c = {
     profile, saved: store.saved, ranked: r,
     toggleSaved: id => { track(store.saved.includes(id) ? 'unsave' : 'save', { oppId: id, cat: catOf(id), page }); store.toggleSaved(id) },
@@ -320,13 +336,16 @@ export default function MemberApp({ path }) {
   }, [q, page]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const detailX = detail && r.all.find(x => x.o.id === detail)
-  const logout = () => { clearSession(); navigate('/') }
+  const logout = async () => { await signOut(); navigate('/') }
+  const who = profile.name || profile.company
   const link = (id, label, icon, extra) => (
     <a key={id} href={pathOf(id)} className="side-item" aria-current={page === id || (id === MY_OPPS && isMy(page)) ? 'page' : undefined} onClick={e => { e.preventDefault(); c.go(pathOf(id)) }}>
-      <Icon n={icon} size={18} />{label}{extra}
+      {CAT_COLOR[id] ? <span className="cat-ico" style={{ color: CAT_COLOR[id] }}><Icon n={icon} size={18} /></span> : <Icon n={icon} size={18} />}{label}{extra}
     </a>
   )
   const searching = q.trim() && page === 'overview'
+  // Pages that search only part of the catalogue say so under the search box.
+  const scope = page === 'saved' ? 'Saved opportunities' : isMy(page) ? 'My opportunities' : page === 'park' ? 'Blue Science Park' : MCAT[page] ? MCAT[page].label : null
 
   return (
     <div className="mem">
@@ -339,6 +358,7 @@ export default function MemberApp({ path }) {
           {link(MY_OPPS, 'My opportunities', 'events')}
         </nav>
         <div className="mem-bottom">
+          {isLive && <button type="button" className="side-item" onClick={() => setChatOpen(true)}><Icon n="spark" size={18} />Assistant</button>}
           {link('profile', 'My profile', 'experts')}
           <button type="button" className="side-item" onClick={logout}><Icon n="arrow" size={18} />Log out</button>
         </div>
@@ -346,28 +366,32 @@ export default function MemberApp({ path }) {
 
       <div className="mem-col">
         <AppHeader icon={searching ? 'spark' : page === 'profile' ? 'experts' : isMy(page) ? 'events' : (NAV.find(n => n.id === page)?.icon || 'layers')} title={searching ? 'Search results' : TITLES[page]} menuOpen={menu} onMenu={() => setMenu(m => !m)}>
-          <Bell r={r} c={c} />
-          <AccountLink initials={profile.name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?'} name={profile.name} org={profile.company} href="/member/profile" onGo={c.go} />
+          <ModeSwitch />
+          <Bell c={c} live={isLive} />
+          <AccountLink initials={who.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?'} name={who} org={profile.name ? profile.company : 'Member company'} href="/member/profile" onGo={c.go} />
         </AppHeader>
 
         <main id="mem-main" ref={main} tabIndex={-1} className="mem-content">
-          <Toolbar left={<form className="mem-search" role="search" onSubmit={e => e.preventDefault()}>
-            <Icon n="spark" size={16} />
-            <input type="search" aria-label={page === 'overview' || page === 'profile' ? 'Search all opportunities' : `Search ${TITLES[page].toLowerCase()}`} placeholder="Search opportunities" value={q} maxLength={80} autoComplete="off"
-              onChange={e => { setQ(e.target.value); if (page === 'profile' && e.target.value.trim()) navigate('/member') }} />
-          </form>} />
-          {searching ? <SearchResults c={c} r={r} q={q.trim()} />
+          <Toolbar left={page === 'profile' ? null : <SearchBar value={q} onChange={v => { setQ(v); if (page === 'profile' && v.trim()) navigate('/member') }} onSubmit={term => { if (term && page === 'profile') navigate('/member') }}
+            label={page === 'overview' || page === 'profile' ? 'Search all opportunities' : `Search ${TITLES[page].toLowerCase()}`} scope={scope} onAsk={isLive ? () => setChatOpen(true) : undefined} />} />
+          {isLive && live.failed.length > 0 && (
+            <div className="mem-empty" role="alert"><strong>Could not load {live.failed.map(f => f.what).join(', ')}</strong><p>{errorText(live.failed[0].error)}</p><button type="button" className="btn btn-primary btn-sm" onClick={live.reload}>Try again</button></div>
+          )}
+          {isLive && live.loading ? <p className="fine" role="status">Loading live data…</p> : searching ? <SearchResults c={c} r={r} q={q.trim()} />
             : page === 'overview' ? <Overview c={c} r={r} />
             : page === 'park' ? <ParkHub c={c} r={r} q={q.trim()} />
             : page === 'saved' ? <Saved c={c} r={r} q={q.trim()} />
-            : page === 'profile' ? <Profile c={c} store={store} np={np} />
-            : isMy(page) ? <EventsRouter key="my" ctx={memberCtx()} sub={sub} />
+            : page === 'profile' ? <Profile c={c} store={store} np={np} live={isLive} />
+            : isMy(page) ? <EventsRouter key="my" ctx={{ ...memberCtx(), q: q.trim() }} sub={sub} />
             : <CategoryPage key={page} id={page} c={c} r={r} q={q.trim()} />}
         </main>
       </div>
 
       {detailX && <Detail x={detailX} c={c} onClose={() => setDetail(null)} />}
-      {editInt && <InterestsEditor current={profile.interests} onClose={() => setEditInt(false)} onSave={list => { store.setProfile({ interests: dedupe(list) }); setEditInt(false) }} />}
+      {editInt && <InterestsEditor current={profile.interests} busy={isLive && saveInts.busy} error={isLive && saveInts.error ? errorText(saveInts.error) : null}
+        onClose={() => { saveInts.clearError(); setEditInt(false) }}
+        onSave={list => { if (isLive) saveInts.save(dedupe(list)).then(ok => ok && setEditInt(false)); else { store.setProfile({ interests: dedupe(list) }); setEditInt(false) } }} />}
+      {chatOpen && <ChatDialog chat={chat} setChat={setChat} onClose={() => setChatOpen(false)} />}
     </div>
   )
 }

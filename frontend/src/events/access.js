@@ -23,6 +23,10 @@ export function memberCompany(email) {
   const c = CONTACTS.find(x => x.email.toLowerCase() === e && x.id !== 'dup-demo')
   if (c) return { id: c.companyId, name: c.company }
   let name = DEFAULT_PROFILE.company
+  // With a real backend login the session carries the account's company (the backend member name), so another company's login is
+  // never treated as Saab just because the browser profile says so.
+  const sess = getSession()
+  if (sess?.role === 'member' && sess.name && String(sess.email || '').trim().toLowerCase() === e) return { id: companyIdOf(sess.name), name: sess.name }
   try { name = JSON.parse(localStorage.getItem('fyyr.member.v1'))?.profile?.company || name } catch { /* default */ }
   return { id: companyIdOf(name), name }
 }

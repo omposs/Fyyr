@@ -31,3 +31,16 @@ export function useMemberStore(sessionEmail) {
     toggleSaved: id => commit({ ...state, saved: state.saved.includes(id) ? state.saved.filter(x => x !== id) : [...state.saved, id] }),
   }
 }
+
+// Initial saves for a demo account, applied ONCE per account (marker below). Items the user later unsaves are never restored.
+const SEED_KEY = 'fyyr.member.savedseed.v1'
+export function seedSavedOnce(who, ids) {
+  if (!who) return
+  let marks = {}
+  try { marks = JSON.parse(localStorage.getItem(SEED_KEY)) || {} } catch { marks = {} }
+  if (marks[who]) return
+  const cur = read()
+  const saved = Array.isArray(cur.saved) ? cur.saved : []
+  if (!write({ ...cur, saved: [...new Set([...saved, ...ids])] })) return
+  try { localStorage.setItem(SEED_KEY, JSON.stringify({ ...marks, [who]: Date.now() })) } catch { /* storage blocked: nothing was saved either */ }
+}

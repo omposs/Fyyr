@@ -99,3 +99,19 @@
 .nw-act{flex-wrap:wrap}
 .nw-intro{margin:0 0 4px}
 .nw-park-h .nw-demo{margin-left:auto}
+
+/* Suggested connections: two equal columns, informative cards (scoped to .nw-conn*) */
+.nw-conn-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:stretch}
+.nw-conn{gap:10px;padding:16px 18px;grid-template-rows:auto auto auto 1fr auto auto}
+.nw-conn .nw-names{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);font-size:16px;font-weight:400}
+.nw-conn .nw-names b{font-weight:600}
+.nw-conn .nw-names small{font-size:13px}
+.nw-theme{font-size:15.5px;font-weight:600}
+.nw-conn .nw-expl{font-size:14.5px}
+.nw-det{display:grid;gap:8px;margin:0;align-content:start;background:#f6f7fd;border-radius:12px;padding:10px 12px}
+.nw-det>div{display:grid;gap:2px}
+.nw-det dt{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.nw-det dd{margin:0;font-size:14px;display:grid;gap:2px}
+.nw-det dd.nw-tags{display:flex;flex-wrap:wrap;gap:6px}
+.nw-conn .nw-act{align-self:end;padding-top:2px}
+@media(max-width:900px){.nw-conn-list{grid-template-columns:minmax(0,1fr)}.nw-conn .nw-names{grid-template-columns:minmax(0,1fr)}}

@@ -1,0 +1,30 @@
+/* Signed-in notification dropdown (.nm). Mirrors the public notification panel (.np): same width, radius, shadow, padding and type. */
+.nm{position:absolute;right:0;top:calc(100% + 8px);z-index:60;width:min(420px,calc(100vw - 16px));max-height:min(560px,calc(100svh - 108px));overflow:auto;background:#fff;border:1px solid var(--glass-b);border-radius:var(--r);box-shadow:0 24px 60px -16px rgba(15,18,34,.45);padding:14px 16px 12px;display:grid;gap:8px;font-size:14.5px;animation:npIn .2s ease both;-webkit-backdrop-filter:none;backdrop-filter:none}
+.nm-head{display:flex;align-items:center;gap:8px}
+.nm-head h3{margin:0;font-size:18px;font-weight:600;flex:1;min-width:0;outline:none}
+.nm-head .icon-btn{width:40px;height:40px}
+.nm-demo{flex:none;font-size:12px;font-weight:600;padding:2px 10px;border-radius:99px;background:#efe9f8;color:#5b3a8c;cursor:help}
+.nm-list{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.nm-list li+li{border-top:1px solid var(--line)}
+.nm-row{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center;width:100%;min-height:52px;padding:8px 6px;margin:0;border:0;border-radius:var(--r-s);background:transparent;font:inherit;color:inherit;text-align:left;cursor:pointer;transition:background .15s}
+.nm-row:hover{background:#f6f7ff}
+.nm-row:focus-visible{outline:2px solid rgba(15,18,34,.4);outline-offset:-2px}
+.nm-ico{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:#e4e8fb;color:var(--blue-d)}
+.nm-txt{display:grid;gap:1px;min-width:0}
+.nm-txt b{font-weight:600;font-size:14.5px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.nm-txt small{font-size:13px;color:var(--muted);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.nm-empty{margin:0;padding:10px 0;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+.nm-foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;border-top:1px solid var(--line);padding-top:6px}
+.nm-link{min-height:40px;padding:0 4px;border:0;background:none;font:inherit;font-size:14px;font-weight:600;color:var(--blue-d);text-decoration:underline;text-underline-offset:3px;cursor:pointer;border-radius:8px}
+.nm-link:focus-visible{outline:2px solid rgba(15,18,34,.4)}
+@media(pointer:coarse){.nm-row{min-height:56px}.nm-link{min-height:44px}}
+@media(max-width:640px){.nm{position:fixed;left:8px;right:8px;width:auto;top:var(--nm-top,64px);max-height:calc(100svh - var(--nm-top,64px) - 12px)}}
+
+.nm-head h3 small.nm-sub{display:inline-block;margin-left:8px;font-size:12.5px;font-weight:500;color:var(--muted)}
+.nm-badge{position:absolute;top:2px;right:2px;min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:99px;background:var(--blue);color:#fff;font-size:11px;font-weight:600;line-height:18px;text-align:center;border:2px solid #fff;line-height:14px}
+.nm-row{grid-template-columns:auto minmax(0,1fr) auto}
+.nm-row:not([data-unread]) .nm-txt b{font-weight:500}
+.nm-time{font-size:12px;color:var(--muted)}
+.nm-new{width:9px;height:9px;border-radius:50%;background:var(--blue)}
+.nm-row[data-unread]{background:#f6f7ff}
+.nm-row[data-unread]:hover{background:#eceeff}

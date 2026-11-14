@@ -47,7 +47,7 @@ function EventRow({ e, orgs, onOpen, onDup, onDel, onArchive, onPreview }) {
   return (
     <li className="ev-row">
       <div className="ev-main">
-        <p className="ev-meta"><span className="pill ev-cat">{c.label}</span><span className={'pill ev-' + st}>{STATE_L[st]}</span><span className={'pill aud-' + audienceBadge(e).split(' ')[0].toLowerCase()}>{audienceBadge(e)}</span>{mem && sharedBadge(e) && <span className="pill aud-shared">{sharedBadge(e)}</span>}{kind}{kind && ' · '}{relevantDate(e)}</p>
+        <p className="ev-meta"><span className="pill ev-cat">{c.label}</span>{(e.demoSeed || e.demoMember) && <span className="pill nw-demo" title="Fictional demo opportunity">Demo</span>}<span className={'pill ev-' + st}>{STATE_L[st]}</span><span className={'pill aud-' + audienceBadge(e).split(' ')[0].toLowerCase()}>{audienceBadge(e)}</span>{mem && sharedBadge(e) && <span className="pill aud-shared">{sharedBadge(e)}</span>}{kind}{kind && ' · '}{relevantDate(e)}</p>
         <h3 className="mem-h"><button type="button" className="mem-title lg" onClick={onOpen}>{e.title || 'Untitled ' + c.noun}</button></h3>
         <p className="fine">{spons.length ? `${plural(spons.length, 'sponsor or partner', 'sponsors and partners')}: ${spons.map(s => s.name).join(', ')}` : 'No sponsors'} · Edited {new Date(e.updated).toLocaleDateString('en-GB')}{mem && e.shareWithBsp && hasGrants(e) && <> · Also open to {plural(e.access.companies.length, 'company', 'companies')}{e.access.members.length > 0 && <> and {plural(e.access.members.length, 'named person', 'named people')}</>}</>}</p>
       </div>
@@ -72,7 +72,9 @@ export function EventList({ ctx, setCategory }) {
   const pick = id => { setCat(id); setTab('draft'); setCategory?.(id) }
   const mine = e => (ctx.mode === 'member' ? e.source === 'member' && canEdit(e, ctx.actor) : e.source !== 'member')
   // One list of records, so an item can only ever appear once. Records without a category are events.
-  const events = all.filter(e => mine(e) && (cat === 'all' || (e.category || 'events') === cat))
+  const nq = (ctx.q || '').trim().toLowerCase()
+  const hay = e => [e.title, e.description, e.details, ...(e.tags || []), e.type, e.owner?.company, e.x?.provider, e.x?.sought, e.x?.expertise].filter(Boolean).join(' ').toLowerCase()
+  const events = all.filter(e => mine(e) && (cat === 'all' || (e.category || 'events') === cat) && (!nq || nq.split(/\s+/).every(w => hay(e).includes(w))))
   const sharedN = all.filter(e => e.source === 'member' && e.status === 'published' && e.visibility === 'company' && e.shareWithBsp).length
   const orgs = useMemo(() => Object.fromEntries(orgsL.map(o => [o.id, o])), [orgsL])
   const tabs = cat === 'all' || cat === 'events' ? ['draft', 'published', 'past', 'archived'] : ['draft', 'published', 'archived']

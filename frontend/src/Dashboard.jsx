@@ -1,12 +1,15 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Icon } from './Icons.jsx'
-import { CATS, CAT, OPPS, CHECKED, isLive, urgency, sortTs } from './demoData.js'
+import { CATS, CHECKED, isLive, urgency, sortTs } from './demoData.js'
+import { errorText } from './api/client.js'
+import { publicOpportunity } from './api/api.js'
+import { usePublicOpportunities, useLocalSaved } from './data/publicOpportunities.js'
+import { matchesQ } from './member/data.js'
+import { OppCard, Detail } from './member/ui.jsx'
+import SearchBar from './member/SearchBar.jsx'
 
-// Saved opportunities (kept in memory for this visit).
-export function useSaved() {
-  const [ids, setIds] = useState([])
-  return { ids, toggle: id => setIds(x => (x.includes(id) ? x.filter(y => y !== id) : [...x, id])) }
-}
+// Anonymous saves: public record ids in this browser only (data/publicOpportunities.js), separate from any signed-in account.
+export const useSaved = useLocalSaved
 
 // ---- notification preferences: stored only in this browser (localStorage); nothing is delivered ----
 const KEY = 'fyyr.notification-preferences.v1'
@@ -36,16 +39,21 @@ const NAV = [
   { id: 'people', label: 'Experts & partners', icon: 'experts' },
   { id: 'saved', label: 'Saved opportunities', icon: 'bookmark' },
 ]
-const inView = (o, v) => (v === 'people' ? o.cat === 'experts' || o.cat === 'collab' : o.cat === v)
 // Undated items go last in both directions.
 const byTs = dir => (a, b) => (a.ts == null ? 1 : b.ts == null ? -1 : dir * (a.ts - b.ts))
+
+const SORTS = [['soon', 'Soonest date'], ['late', 'Latest date'], ['newest', 'Newest'], ['title', 'Title A to Z']]
 
 export function Dashboard({ saved, np, notify }) {
   const [view, setView] = useState('events')
   const [sort, setSort] = useState('soon')
+  const [q, setQ] = useState('')
+  const [detail, setDetail] = useState(null)
+  const [gone, setGone] = useState(() => new Set()) // API records the server no longer lists as public
   const [notifOpen, setNotifOpen] = useState(false)
   const bellRef = useRef(null)
   const now = useMemo(() => new Date(), [])
+  const pub = usePublicOpportunities()
 
   // Both the bell and "Edit preferences" (here or elsewhere on the page) open the same panel.
   useEffect(() => {
@@ -54,14 +62,34 @@ export function Dashboard({ saved, np, notify }) {
     return () => window.removeEventListener('fyyr:open-panel', open)
   }, [])
 
-  // Expired or closed items are excluded from the upcoming feed.
-  const base = useMemo(() => OPPS.filter(o => isLive(o, now)).map((o, i) => { const u = urgency(o, now); return { o, i, u, ts: sortTs(u) } }), [now])
-  const cmp = (a, b) => byTs(sort === 'late' ? -1 : 1)(a, b) || a.i - b.i
-  const shown = (view === 'saved' ? base.filter(x => saved.ids.includes(x.o.id)) : base.filter(x => inView(x.o, view))).sort(cmp)
-  const deadlines = base.filter(x => x.u && x.u.kind === 'deadline' && x.u.days <= 14).sort(byTs(1))
+  // One eligible, upcoming list. Past or closed items are excluded everywhere (cards, counts, deadlines). No scores: not personalised.
+  const base = useMemo(() => pub.items.filter(o => !gone.has(o.id) && isLive(o, now)).map((o, i) => { const u = urgency(o, now); return { o, idx: i, u, ts: sortTs(u), live: true, score: 0, reasons: [], strength: null } }), [pub.items, gone, now])
+  const available = useMemo(() => new Set(base.map(x => x.o.id)), [base])
+  const savedNow = saved.ids.filter(id => available.has(id)) // anonymous saves of records that are no longer public disappear from results
+  useEffect(() => { if (pub.status !== 'loading') saved.keepOnly?.(available) }, [available, pub.status]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const cmp = (a, b) => {
+    if (sort === 'title') return a.o.title.localeCompare(b.o.title)
+    if (sort === 'newest') return (b.o.published || 0) - (a.o.published || 0) || a.idx - b.idx
+    return (a.ts == null ? 1 : b.ts == null ? -1 : (sort === 'late' ? -1 : 1) * (a.ts - b.ts)) || a.idx - b.idx // undated go last in both directions
+  }
+  const pool = view === 'saved' ? base.filter(x => saved.ids.includes(x.o.id)) : base.filter(x => x.o.mcat === view)
+  const shown = pool.filter(x => matchesQ(x, q.trim())).sort(cmp)
+  const deadlines = base.filter(x => x.u && x.u.kind === 'deadline' && x.u.days <= 14).sort((a, b) => a.ts - b.ts)
   const [regular, critical] = prefsSummary(np.prefs)
   const cur = NAV.find(n => n.id === view)
   const closePanel = restore => { setNotifOpen(false); if (restore) setTimeout(() => bellRef.current?.focus(), 0) }
+  const detailX = detail && base.find(x => x.o.id === detail)
+  const c = { saved: saved.ids, toggleSaved: saved.toggle, openDetail: id => setDetail(id), trackSource: () => {}, pub: true, openInterests: () => {} }
+
+  // Opening an API record re-asks the server (the public detail endpoint applies the same rule). If it is no longer public, it is removed.
+  useEffect(() => {
+    const x = detail && base.find(y => y.o.id === detail)
+    if (!x?.o.fromApi) return
+    const ctl = new AbortController()
+    publicOpportunity(x.o.apiId, ctl.signal).catch(e => { if (e?.kind === 'notfound') { setGone(g => new Set(g).add(x.o.id)); setDetail(null) } })
+    return () => ctl.abort()
+  }, [detail]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div id="demo" tabIndex={-1} className="dash" role="region" aria-label="Fyyr public opportunities">
@@ -78,7 +106,7 @@ export function Dashboard({ saved, np, notify }) {
           {NAV.map(n => (
             <button key={n.id} type="button" className="side-item" aria-current={view === n.id ? 'page' : undefined} onClick={() => setView(n.id)}>
               <Icon n={n.icon} size={18} />{n.label}
-              {n.id === 'saved' && saved.ids.length > 0 && <b>{saved.ids.length}</b>}
+              {n.id === 'saved' && savedNow.length > 0 && <b>{savedNow.length}</b>}
             </button>
           ))}
         </nav>
@@ -89,48 +117,29 @@ export function Dashboard({ saved, np, notify }) {
               {NAV.map(n => <option key={n.id} value={n.id}>{n.label}</option>)}
             </select>
           </label>
+          <SearchBar value={q} onChange={setQ} label="Search public opportunities" scope={view === 'saved' ? 'Saved opportunities' : null} />
           <div className="feed-head">
             <div>
               <h3>{cur.label}</h3>
-              <p className="muted">Upcoming public opportunities. Not personalised.</p>
+              <p className="muted" role="status">{q.trim() ? `${shown.length} of ${pool.length} matching “${q.trim()}”. ` : `${shown.length} upcoming. `}Public results are not personalised.</p>
             </div>
             <label className="sort">Sort by
-              <select className="sel" value={sort} onChange={e => setSort(e.target.value)}>
-                <option value="soon">Soonest deadline</option><option value="late">Latest deadline</option>
-              </select>
+              <select className="sel" value={sort} onChange={e => setSort(e.target.value)}>{SORTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
             </label>
           </div>
-          <p className="sim-note"><Icon n="layers" size={14} /> Public-source opportunities, checked {CHECKED}. Continuous monitoring is not connected.</p>
+          <p className="sim-note"><Icon n="layers" size={14} /><span> Public-source opportunities, checked {CHECKED}, plus clearly labelled demo examples. Continuous monitoring is not connected.
+            {pub.status === 'loading' && <> Loading live public results…</>}
+            {pub.status === 'error' && <> Live public results could not be loaded ({errorText(pub.error).replace(/\.$/, '')}); showing the examples only. <button type="button" className="link-btn" onClick={pub.reload}>Try again</button></>}
+            {view === 'saved' && <> Saved here means saved in this browser only.</>}
+          </span></p>
 
           <div className="feed-list" tabIndex={0} role="region" aria-label="Opportunities" data-lenis-prevent>
             {shown.length === 0 && (
-              <p className="empty">{view === 'saved' ? 'Nothing saved yet. Save an opportunity to keep it here.'
-                : 'No verified public listings in this area yet. Fyyr is not continuously monitoring sources, so this area stays empty until verified items are added.'}</p>
+              <p className="empty">{view === 'saved' ? (q.trim() ? 'No saved opportunity matches your search.' : 'Nothing saved yet. Save an opportunity to keep it here, in this browser.')
+                : q.trim() ? 'No public opportunity matches your search. Try fewer or different words.'
+                : 'No public listings in this area yet. Fyyr is not continuously monitoring sources, so this area stays empty until items are added.'}</p>
             )}
-            <ul className="cards">
-              {shown.map(({ o, u }) => {
-                const isSaved = saved.ids.includes(o.id)
-                return (
-                  <li key={o.id} className="opp">
-                    <div className="opp-top"><span className="ocat"><Icon n={CAT[o.cat].icon} size={16} />{CAT[o.cat].label}</span></div>
-                    <h4>{o.title}</h4>
-                    <p className="sum">{o.summary}</p>
-                    {o.cat === 'funding' && <p className="fine">Check eligibility at the source.</p>}
-                    {o.note && <p className="fine">{o.note}</p>}
-                    <div className="opp-meta">
-                      <span className="when"><Icon n="clock" size={14} />{o.dateText}</span>
-                      <span className="where">{o.where}</span>
-                      {u && <span className={`when ${u.kind === 'deadline' && u.days <= 14 ? 'when-soon' : ''}`}>{u.label}</span>}
-                    </div>
-                    <p className="src"><Icon n="ext" size={14} /><span><a href={o.url} target="_blank" rel="noopener noreferrer">{o.source}</a> · information checked {CHECKED}</span></p>
-                    <div className="opp-actions">
-                      <a className="btn btn-primary btn-sm" href={o.url} target="_blank" rel="noopener noreferrer">{o.next}<Icon n="ext" size={15} /></a>
-                      <button type="button" className="btn btn-glass btn-sm" aria-pressed={isSaved} onClick={() => saved.toggle(o.id)}><Icon n="bookmark" size={16} />{isSaved ? 'Saved' : 'Save'}</button>
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
+            <ul className="cards">{shown.map(x => <OppCard key={x.o.id} x={x} c={c} />)}</ul>
           </div>
         </div>
 
@@ -138,7 +147,7 @@ export function Dashboard({ saved, np, notify }) {
           <h3>Updates and deadlines</h3>
           <div className="upd">
             <span className="upd-k upd-amber"><Icon n="clock" size={14} /> Closing in the next 14 days</span>
-            {deadlines.length ? deadlines.slice(0, 3).map(x => <span key={x.o.id}><strong>{x.o.title}</strong><br />{x.u.label}</span>) : <span>No public deadlines in the next 14 days.</span>}
+            {deadlines.length ? deadlines.slice(0, 3).map(x => <span key={x.o.id}><button type="button" className="link-btn" onClick={() => setDetail(x.o.id)}><strong>{x.o.title}</strong></button><br />{x.u.label}</span>) : <span>No public deadlines in the next 14 days.</span>}
           </div>
           <div className="upd">
             <span className="upd-k"><Icon n="bell" size={14} /> Your notification preferences</span>
@@ -151,6 +160,7 @@ export function Dashboard({ saved, np, notify }) {
         </aside>
       </div>
 
+      {detailX && <Detail x={detailX} c={c} onClose={() => setDetail(null)} />}
       {notifOpen && <NotifPanel np={np} anchorRef={bellRef} notify={notify} onClose={closePanel} />}
     </div>
   )

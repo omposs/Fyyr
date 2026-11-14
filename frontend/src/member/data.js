@@ -22,7 +22,7 @@ export const SIZES = ['1–10', '11–50', '51–250', '250+']
 // Account details that belong to the organisation, not the member. They are read-only: the profile store ignores any attempt to change them.
 // Company facts are from Saab's own site (saab.com/about/company-in-brief, read 14 Nov 2026). Role, sector, business unit and workplace are configured profile labels scoped to Karlskrona, not official Saab data.
 export const LOCKED_PROFILE = {
-  name: 'Stefan Ungureanu', title: 'Head of Operations — Karlskrona', company: 'Saab', sector: 'Maritime Research',
+  name: 'Anna Johansson', title: 'Innovation Coordinator', company: 'Saab', sector: 'Maritime Research',
   about: 'Serves the global market of governments, authorities and corporations with products, services and solutions ranging from military defence to civil security.',
   website: 'https://www.saab.com', location: 'Linköping, Sweden (registered office)', size: 'About 26,100 employees (2025)',
   // Configured profile labels, not verified official Saab divisions. No street address is recorded.
@@ -84,7 +84,7 @@ export function rank(p, now = new Date()) {
 }
 export const byDate = (a, b) => tsCmp(a, b) || b.score - a.score || a.idx - b.idx
 
-export const haystack = o => norm([o.title, o.summary, o.provider, o.where, o.expertise, o.kind, ...o.tags].filter(Boolean).join(' '))
+export const haystack = o => norm([o.title, o.summary, o.description, o.provider, o.where, o.expertise, o.facilities, o.kind, ...o.tags, ...(o.sectors || [])].filter(Boolean).join(' '))
 export const matchesQ = (x, q) => { const t = norm(q); return !t || t.split(' ').every(w => (x._h ??= haystack(x.o)).includes(w)) }
 
 // ---- Blue Science Park content ----
