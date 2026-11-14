@@ -1,0 +1,27 @@
+{
+  "company": "Nordhav Subsea AB",
+  "source_url": "https://nordhav.example/about",
+  "page": "nordhav-subsea.txt",
+  "items": [
+    {"category": "product", "value": "sonar systems", "also_categories": ["technology"]},
+    {"category": "product", "value": "autonomous underwater vehicles", "aliases": ["AUV", "AUVs"], "also_categories": ["technology"]},
+    {"category": "product", "value": "subsea inspection software", "aliases": ["inspection software"]},
+    {"category": "technology", "value": "machine learning"},
+    {"category": "technology", "value": "sonar"},
+    {"category": "market", "value": "offshore wind"},
+    {"category": "market", "value": "marine research"},
+    {"category": "market", "value": "ports"},
+    {"category": "geography", "value": "Karlskrona"},
+    {"category": "geography", "value": "Sweden"},
+    {"category": "geography", "value": "Baltic Sea"},
+    {"category": "geography", "value": "Denmark"},
+    {"category": "priority", "value": "test sites"},
+    {"category": "priority", "value": "research partners"},
+    {"category": "priority", "value": "reduce the cost of offshore maintenance", "aliases": ["offshore maintenance cost"]}
+  ],
+  "must_not": [
+    {"value": "aquaculture"},
+    {"value": "5G"},
+    {"value": "defence"}
+  ]
+}
