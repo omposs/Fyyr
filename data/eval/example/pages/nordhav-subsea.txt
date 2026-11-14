@@ -1,0 +1,4 @@
+=== https://nordhav.example/about ===
+Nordhav Subsea AB is a company based in Karlskrona, Sweden. We develop sonar systems and autonomous underwater vehicles for offshore wind and marine research customers. Our inspection software uses machine learning to detect defects on cables and foundations. We operate across the Baltic Sea and in Denmark.
+=== https://nordhav.example/partners ===
+We are seeking test sites and research partners for subsea inspection. Our priority is to reduce the cost of offshore maintenance. We also serve the ports market in Sweden.

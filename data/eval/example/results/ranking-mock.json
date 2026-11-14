@@ -1,0 +1,10 @@
+{
+  "at": "2026-11-14T09:46:07+00:00",
+  "aggregate": {
+    "companies": 1,
+    "provider": "mock",
+    "precision_at_5": 1.0,
+    "lift_over_base_rate": 2.4,
+    "relevant_not_shown": 0
+  }
+}

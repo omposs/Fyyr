@@ -1,0 +1,48 @@
+[
+  {
+    "name": "The Maritime Executive",
+    "module": "news",
+    "kind": "rss",
+    "url": "https://maritime-executive.com/articles.rss",
+    "enabled": true,
+    "verified": false,
+    "note": "Atom feed. A captured copy showed items from 2026-11-12. General shipping/naval news, US-heavy. Confirm with: python -m app.feeds check"
+  },
+  {
+    "name": "ODEE - Offshore Design & Engineering Equipment",
+    "module": "news",
+    "kind": "rss",
+    "url": "https://feeds.feedburner.com/Odee-OffshoreDesignEngineeringEurope",
+    "enabled": true,
+    "verified": false,
+    "note": "RSS 2.0 via FeedBurner. A captured copy had lastBuildDate 2026-11-11 and 9 items. UK offshore energy and engineering. Item links are http://, which is fine for items."
+  },
+  {
+    "name": "Interreg South Baltic (news)",
+    "module": "funding",
+    "kind": "rss",
+    "url": "https://southbaltic.eu/feed/",
+    "enabled": false,
+    "verified": false,
+    "include": ["call", "funding", "grant", "project proposals"],
+    "location": "South Baltic region",
+    "note": "GUESS: standard WordPress feed path, never confirmed to exist. Enable only after a successful check."
+  },
+  {
+    "name": "EXAMPLE: replace with a real Ericsson newsroom feed URL",
+    "module": "news",
+    "kind": "rss",
+    "url": "https://example.com/replace-me.xml",
+    "enabled": false,
+    "verified": false,
+    "note": "Ericsson's newsroom page shows an RSS button, but I could not read the feed address from here. Copy it from the page."
+  },
+  {
+    "name": "EXAMPLE: replace with a real iCal events calendar URL",
+    "module": "events",
+    "kind": "ical",
+    "url": "https://example.com/replace-me.ics",
+    "enabled": false,
+    "verified": false
+  }
+]

@@ -1,0 +1,5 @@
+[
+  {"title": "Karlskrona Coastal Test Range", "summary": "Open water test site with permits for autonomous underwater vehicle and sonar trials, vessel support and shore power.", "url": "https://example.org/testbeds/karlskrona-range", "source_name": "Blue Science Park Testbeds", "published_at": "2026-08-01", "location": "Karlskrona, Sweden", "tags": ["auv", "sonar", "autonomous underwater vehicle", "test range"]},
+  {"title": "Baltic Aquaculture Pilot Farm", "summary": "Commercial-scale pilot farm open to sensor and monitoring technology validation for aquaculture.", "url": "https://example.org/testbeds/aqua-pilot", "source_name": "Nordic Blue Growth", "published_at": "2026-07-12", "location": "Blekinge, Sweden", "tags": ["aquaculture", "sensor", "validation"]},
+  {"title": "Port Digital Twin Sandbox", "summary": "Sandbox environment with live port data feeds for digital twin and predictive maintenance experiments.", "url": "https://example.org/testbeds/port-sandbox", "source_name": "Port Innovation Network", "published_at": "2026-06-05", "location": "Copenhagen, Denmark", "tags": ["ports", "digital twin", "predictive maintenance"]}
+]
