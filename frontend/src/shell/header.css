@@ -1,0 +1,35 @@
+/* Shared page header: one row, fixed proportions, no page-specific offsets. */
+.app-hd{position:sticky;top:0;z-index:30;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:16px;min-height:84px;box-sizing:border-box;padding:0 clamp(16px,3vw,40px);background:rgba(245,246,255,.82);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border-bottom:1px solid var(--glass-b)}
+.app-hd-l{display:flex;align-items:center;gap:12px;min-width:0}
+.app-hd-ico{display:inline-grid;place-items:center;flex:none;width:40px;height:40px;border-radius:12px;background:#e4e8fb;color:var(--blue-d)}
+.app-hd-t{margin:0;min-width:0;font-size:clamp(20px,2.2vw,26px);font-weight:600;letter-spacing:-.02em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app-hd-menu{display:none;flex:none;width:40px;height:40px;place-items:center;border-radius:12px;border:1px solid var(--glass-b);background:rgba(255,255,255,.75);color:inherit;padding:0}
+.app-hd-r{display:flex;flex-wrap:nowrap;align-items:center;gap:8px;flex:none}
+.app-hd-r .icon-btn{width:44px;height:44px}
+.app-acct{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 6px;border-radius:12px;color:inherit;text-decoration:none;flex:none}
+.app-acct:hover{background:rgba(255,255,255,.7)}
+.app-acct-av{width:40px;height:40px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;font-size:14px;font-weight:600;flex:none}
+.app-acct-t{display:flex;flex-direction:column;line-height:1.2;font-size:14px;white-space:nowrap}
+.app-acct-t small{color:var(--muted);font-size:12px}
+
+/* Toolbar in the content area */
+.app-tb{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 16px;margin:0 0 16px}
+.app-tb-l,.app-tb-r{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;min-width:0}
+.app-tb-l{flex:1 1 auto}
+.app-tb-r{margin-left:auto}
+.app-tb .sel,.app-tb .btn,.app-tb .mem-search input{height:40px;min-height:40px}
+.app-tb .mem-search{flex:1 1 280px;max-width:420px}
+
+@media(max-width:900px){
+  .app-hd{min-height:72px}
+  .app-hd-menu{display:grid}
+  .app-hd-t{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:break-word;min-width:10ch;font-size:19px}
+  .app-acct-t{display:none}
+  .app-tb-r{margin-left:0}
+}
+@media(max-width:640px){
+  .app-hd{gap:10px;padding:0 14px}
+  .app-hd-l{gap:10px}
+  .app-tb .mem-search{max-width:none}
+}
+@media print{.app-hd,.app-tb{display:none!important}}

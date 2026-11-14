@@ -1,7 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import Lenis from 'lenis'
 import SplitText from './reactbits/SplitText.jsx'
 import Grainient from './reactbits/Grainient.jsx'
 import { Dashboard, useSaved, useNotifPrefs, prefsSummary } from './Dashboard.jsx'
@@ -114,12 +113,7 @@ export default function App() {
 
   useEffect(() => {
     if (reduceMotion()) return
-    // Lenis only eases wheel/touch scrolling; native scroll, anchors and keyboard still work.
-    const lenis = new Lenis({ anchors: { offset: -72 } })
-    lenis.on('scroll', ScrollTrigger.update)
-    const tick = t => lenis.raf(t * 1000)
-    gsap.ticker.add(tick)
-    gsap.ticker.lagSmoothing(0)
+    // Native scrolling (no Lenis smooth-scroll): ScrollTrigger reads the real scroll position, so reveals still work.
     const ctx = gsap.context(() => {
       gsap.from('.hero-in > *', { opacity: 0, y: 18, duration: 0.9, ease: 'power3.out', stagger: 0.09, delay: 0.1 })
       gsap.from('.hero-dash', { opacity: 0, y: 40, duration: 1.1, ease: 'power3.out', delay: 0.35 })
@@ -139,7 +133,7 @@ export default function App() {
     const t2 = setTimeout(() => { ScrollTrigger.refresh(); rescue() }, 6500)
     const onLoad = () => ScrollTrigger.refresh()
     window.addEventListener('load', onLoad)
-    return () => { clearTimeout(t1); clearTimeout(t2); window.removeEventListener('load', onLoad); ctx.revert(); gsap.ticker.remove(tick); lenis.destroy() }
+    return () => { clearTimeout(t1); clearTimeout(t2); window.removeEventListener('load', onLoad); ctx.revert() }
   }, [])
 
   useEffect(() => {
@@ -190,7 +184,7 @@ export default function App() {
       <main id="main">
         <div className="fyyr-hero">
           <div className="fyyr-hero-background" aria-hidden="true">
-            <Grainient colors={['#F4F5FF', '#E4E6FF', '#CDD3FF', '#EEF3D6']} type="linear" angle={115} bands={1} softness={1} flow={0.6} scale={1.6} speed={0.2} silk={0.08} grainAmount={0.012} grainSize={1} grainAnimated={false} contrast={1} saturation={0.9} variation={0} interactive={fine} stir={0.35} clickSwirl={false} intro={false} lightMode={false} dpr={1.5} />
+            <Grainient colors={['#F4F5FF', '#E4E6FF', '#CDD3FF', '#EEF3D6']} type="linear" angle={115} bands={1} softness={1} flow={0.6} scale={1.6} speed={0.2} silk={0.08} grainAmount={0.012} grainSize={1} grainAnimated={false} contrast={1} saturation={0.9} variation={0} interactive={fine} stir={0.35} clickSwirl={false} intro={false} lightMode={false} dpr={1} />
           </div>
           <section className="hero wrap fyyr-hero-content">
             <div className="hero-in">

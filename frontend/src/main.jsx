@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import InternalPage from './InternalPage.jsx'
+import EventLink from './events/EventLink.jsx'
 import './styles.css'
 
 function Root() {
@@ -13,7 +14,8 @@ function Root() {
     return () => window.removeEventListener('popstate', on)
   }, [])
   if (path === '/member' || path.startsWith('/member/')) return <InternalPage role="member" path={path} />
-  if (path === '/staff') return <InternalPage role="staff" />
+  if (path === '/staff' || path.startsWith('/staff/')) return <InternalPage role="staff" path={path} />
+  if (path.startsWith('/events/')) return <EventLink id={decodeURIComponent(path.slice(8).replace(/\/$/, ''))} />
   return <App />
 }
 createRoot(document.getElementById('root')).render(<Root />)

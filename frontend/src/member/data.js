@@ -1,4 +1,5 @@
-import { OPPS, fmt, isLive, urgency, sortTs } from '../demoData.js'
+import { isLive, urgency, sortTs } from '../demoData.js'
+import { listOpportunities } from '../data/repository.js'
 
 // ---- member-area demo data and the one shared matching function ----
 // Sourced opportunities come from ../demoData.js (real dates and links, unchanged).
@@ -18,56 +19,25 @@ export const SECTORS = ['Maritime & offshore', 'Energy', 'Software & IT', 'Advan
 export const GOALS = ['Find funding', 'Find partners', 'Test a product', 'Grow internationally', 'Build skills']
 export const SIZES = ['1–10', '11–50', '51–250', '250+']
 
+// Account details that belong to the organisation, not the member. They are read-only: the profile store ignores any attempt to change them.
+// Company facts are from Saab's own site (saab.com/about/company-in-brief, read 14 Nov 2026). Role, sector, business unit and workplace are configured profile labels scoped to Karlskrona, not official Saab data.
+export const LOCKED_PROFILE = {
+  name: 'Stefan Ungureanu', title: 'Head of Operations — Karlskrona', company: 'Saab', sector: 'Maritime Research',
+  about: 'Serves the global market of governments, authorities and corporations with products, services and solutions ranging from military defence to civil security.',
+  website: 'https://www.saab.com', location: 'Linköping, Sweden (registered office)', size: 'About 26,100 employees (2025)',
+  // Configured profile labels, not verified official Saab divisions. No street address is recorded.
+  unit: 'Maritime Research & Operations — Karlskrona', workplace: 'Karlskrona, Sweden', office: 'Karlskrona',
+}
+export const EDITABLE_PROFILE_KEYS = ['email', 'interests']
 export const DEFAULT_PROFILE = {
-  name: 'Alex Morgan', email: '', title: 'Operations lead',
-  company: 'Kustvind Technologies', sector: 'Maritime & offshore', about: 'Fictional demo company building sensor systems for coastal and offshore monitoring.',
-  website: 'https://kustvind.example', location: 'Karlskrona, Sweden', size: '11–50',
+  ...LOCKED_PROFILE, email: '',
   interests: ['Maritime technology', 'Sustainability', 'Funding', 'Energy'],
   wants: ['funding', 'events', 'testing'], goals: ['Find funding', 'Test a product'],
 }
 
-// ---- sourced opportunities, mapped onto the member interest vocabulary ----
-const MAP = { ai: ['AI'], security: ['Cybersecurity'], offshore: ['Maritime technology'], energy: ['Energy'], manufacturing: ['Advanced manufacturing'], growth: ['International growth'], eu: ['International growth'], deeptech: ['Research collaboration'] }
-const SECT = { ai: 'Software & IT', security: 'Software & IT', cloud: 'Software & IT', offshore: 'Maritime & offshore', energy: 'Energy', manufacturing: 'Advanced manufacturing' }
-const uniq = a => [...new Set(a)]
-const sourced = OPPS.map(o => ({
-  ...o, mcat: o.cat, provider: o.source,
-  online: /^online/i.test(o.where),
-  kind: o.cat === 'knowledge' ? 'Course' : undefined,
-  tags: uniq([...o.topics.flatMap(t => MAP[t] || []), ...(o.cat === 'funding' ? ['Funding'] : [])]),
-  sectors: uniq(o.topics.map(t => SECT[t]).filter(Boolean)),
-  goals: uniq([...(o.cat === 'funding' ? ['Find funding'] : ['Build skills']), ...(o.topics.some(t => t === 'eu' || t === 'growth') ? ['Grow internationally'] : [])]),
-}))
-
-// ---- fictional demo entries ----
-const pad = n => String(n).padStart(2, '0')
-const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` }
-const D = (id, cat, title, summary, x) => ({ id, cat, mcat: cat === 'experts' || cat === 'collab' ? 'people' : cat, title, summary, demo: true, urg: [], urgLabel: '', where: '', next: 'View details', tags: [], sectors: [], goals: [], ...x })
-
-const fictional = [
-  D('d1', 'events', 'Coastal technology meetup', 'An evening for companies building maritime and coastal technology, with short demos and time to meet potential partners.', { start: day(9), urg: [day(6)], urgLabel: 'Registration closes', where: 'Karlskrona, in person', online: false, provider: 'Harbour Innovation Network (fictional)', audience: 'Founders and technical leads in maritime technology', eligibility: 'Free for member companies.', tags: ['Maritime technology', 'Sustainability'], sectors: ['Maritime & offshore'], goals: ['Find partners'], next: 'Register (demo)' }),
-  D('d2', 'events', 'Hands-on workshop: IoT sensors in harsh environments', 'A practical half-day on choosing, deploying and maintaining sensors outdoors and at sea.', { start: day(21), urg: [day(18)], urgLabel: 'Registration closes', where: 'Online', online: true, provider: 'Northern Makers Lab (fictional)', audience: 'Engineers and product owners', tags: ['IoT', 'Advanced manufacturing'], sectors: ['Advanced manufacturing', 'Maritime & offshore'], goals: ['Build skills', 'Test a product'], next: 'Register (demo)' }),
-  D('d3', 'events', 'Digital health pitch afternoon', 'Five health-tech companies pitch to clinicians and investors. Open to listen and ask questions.', { start: day(35), where: 'Online', online: true, provider: 'Care Tech Forum (fictional)', audience: 'Health-tech founders, clinicians, investors', tags: ['Digital health', 'AI'], sectors: ['Health & life science'], goals: ['Find partners', 'Grow internationally'], next: 'Register (demo)' }),
-  D('d4', 'funding', 'Blue Growth Pilot Grant', 'Co-funding for pilots that take ocean and coastal technology from prototype to a first real deployment.', { urg: [day(12)], urgLabel: 'Application deadline', where: 'Online application', provider: 'Regional Innovation Fund (fictional)', amount: 'Up to SEK 500,000', eligibility: 'Small and medium-sized companies in the region with a working prototype.', audience: 'SMEs with a working prototype', tags: ['Maritime technology', 'Funding', 'Sustainability'], sectors: ['Maritime & offshore'], goals: ['Find funding', 'Test a product'], next: 'Start application (demo)' }),
-  D('d5', 'funding', 'Regional Export Boost', 'Support for companies preparing their first sales push in a new international market.', { urg: [day(40)], urgLabel: 'Application deadline', where: 'Online application', provider: 'Trade & Export Council (fictional)', amount: 'Up to SEK 250,000', eligibility: 'Companies with at least one year of revenue.', tags: ['International growth', 'Funding'], goals: ['Find funding', 'Grow internationally'], next: 'Start application (demo)' }),
-  D('d6', 'funding', 'Green Energy Prototype Support', 'Funding for prototypes that reduce energy use or enable renewable generation.', { urg: [day(25)], urgLabel: 'Application deadline', where: 'Online application', provider: 'Clean Transition Programme (fictional)', amount: 'SEK 100,000 to 1,000,000', eligibility: 'Companies with a prototype and a named test partner.', tags: ['Energy', 'Sustainability', 'Funding'], sectors: ['Energy'], goals: ['Find funding'], next: 'Start application (demo)' }),
-  D('d7', 'testing', 'Coastal test bed access', 'Book time at a sheltered coastal test area with quay access and wave and current monitoring.', { urg: [day(30)], urgLabel: 'Application deadline', where: 'Karlskrona archipelago', kind: 'Testbed', provider: 'Blekinge Ocean Lab (fictional)', facilities: 'Sheltered test area, quay access, wave and current sensors, workshop space', requirements: 'Safety briefing and liability insurance. Test plan reviewed before booking.', audience: 'Companies testing marine hardware or sensors', tags: ['Maritime technology', 'IoT', 'Sustainability'], sectors: ['Maritime & offshore'], goals: ['Test a product'], next: 'Request access (demo)' }),
-  D('d8', 'testing', 'Cybersecurity lab pilot slot', 'A limited pilot slot to test a product against realistic attack scenarios in an isolated lab.', { urg: [day(18)], urgLabel: 'Application deadline', where: 'Karlskrona, on site', kind: 'Lab', provider: 'Secure Systems Lab (fictional)', facilities: 'Isolated network lab, red-team tooling, monitoring', requirements: 'Signed non-disclosure agreement. Two staff on site for one week.', tags: ['Cybersecurity', 'AI'], sectors: ['Software & IT'], goals: ['Test a product'], next: 'Request access (demo)' }),
-  D('d9', 'testing', 'Smart factory pilot line', 'Try your automation or monitoring idea on a small production line used for research.', { where: 'Karlskrona, on site', kind: 'Pilot site', provider: 'Industry Pilot Hub (fictional)', facilities: 'Small assembly line, machine data gateway, edge computing rack', requirements: 'Project outline and a named contact. Availability agreed case by case.', tags: ['Advanced manufacturing', 'IoT', 'AI'], sectors: ['Advanced manufacturing'], goals: ['Test a product', 'Find partners'], next: 'Request access (demo)' }),
-  D('d10', 'testing', 'Digital health sandbox', 'A safe environment with synthetic patient data for testing digital health tools.', { urg: [day(50)], urgLabel: 'Application deadline', where: 'Online', kind: 'Testbed', provider: 'Health Data Sandbox (fictional)', facilities: 'Synthetic datasets, secure cloud workspace', requirements: 'Description of the tool and its intended users.', tags: ['Digital health', 'AI'], sectors: ['Health & life science'], goals: ['Test a product'], next: 'Request access (demo)' }),
-  D('d11', 'knowledge', 'Offshore energy and sustainability: trend briefing', 'A short briefing on where offshore energy and sustainable marine technology are heading over the next three years.', { where: 'Online reading', kind: 'Briefing', provider: 'Baltic Technology Review (fictional)', audience: 'Leaders and product owners', tags: ['Energy', 'Sustainability', 'Maritime technology'], sectors: ['Energy', 'Maritime & offshore'], goals: ['Build skills'], next: 'Read briefing (demo)' }),
-  D('d12', 'knowledge', 'AI in manufacturing: a practical guide', 'What works, what does not, and how small companies can start with AI on the factory floor.', { where: 'Online reading', kind: 'Report', provider: 'Industry Digital Lab (fictional)', tags: ['AI', 'Advanced manufacturing'], sectors: ['Advanced manufacturing'], goals: ['Build skills'], next: 'Read report (demo)' }),
-  D('d13', 'knowledge', 'Cybersecurity for small companies: what NIS2 means for you', 'A plain-language explainer on new security obligations and the first steps for a small company.', { where: 'Online reading', kind: 'Briefing', provider: 'Digital Trust Centre (fictional)', tags: ['Cybersecurity'], sectors: ['Software & IT'], goals: ['Build skills'], next: 'Read briefing (demo)' }),
-  D('d14', 'experts', 'Dr. Mira Lindqvist, marine robotics', 'Researcher in autonomous vessels and underwater robotics, open to short advisory projects.', { where: 'Karlskrona', provider: 'Fictional researcher', expertise: 'Marine robotics, autonomous vessels, sensor fusion', collab: 'Open to research collaboration and advisory work', tags: ['Maritime technology', 'AI', 'Research collaboration'], sectors: ['Maritime & offshore'], goals: ['Find partners'], next: 'Request intro (demo)' }),
-  D('d15', 'experts', 'Jonas Berg, funding adviser', 'Helps small companies choose, write and manage regional and EU funding applications.', { where: 'Online or in person', provider: 'Fictional adviser', expertise: 'Grant applications, EU programmes, budgeting', collab: 'Offers a free first consultation to members', tags: ['Funding', 'International growth'], goals: ['Find funding'], next: 'Request intro (demo)' }),
-  D('d16', 'collab', 'Nordlight Sensors', 'Fictional sensor company looking for pilot partners with offshore access.', { where: 'Göteborg', provider: 'Fictional company', expertise: 'Low-power sensors, wireless data links', collab: 'Seeking offshore pilot partners and integrators', tags: ['IoT', 'Maritime technology', 'Energy'], sectors: ['Maritime & offshore', 'Energy'], goals: ['Find partners', 'Test a product'], next: 'Request intro (demo)' }),
-  D('d17', 'collab', 'GreenGrid Analytics', 'Fictional analytics company working on energy forecasting and grid optimisation.', { where: 'Malmö', provider: 'Fictional company', expertise: 'Energy forecasting, machine learning, grid data', collab: 'Looking for data partners in renewable energy', tags: ['Energy', 'AI', 'Sustainability'], sectors: ['Energy', 'Software & IT'], goals: ['Find partners'], next: 'Request intro (demo)' }),
-].map(o => {
-  const dates = [...o.urg, o.start].filter(Boolean).sort()
-  return { ...o, end: o.end || (dates.length ? dates[dates.length - 1] : day(365)), dateText: o.start ? `${fmt(o.start)}` : '' }
-})
-
-export const MEMBER_OPPS = [...sourced, ...fictional]
+// Opportunities come from the repository (src/data/repository.js): sourced public records plus, while enabled, fictional demo records.
+// Created opportunities are merged on top by events/sync.js and never stored here.
+export const MEMBER_OPPS = listOpportunities()
 export const OPP_BY_ID = Object.fromEntries(MEMBER_OPPS.map(o => [o.id, o]))
 
 // ---- matching: one deterministic function used everywhere ----
@@ -116,3 +86,26 @@ export const byDate = (a, b) => tsCmp(a, b) || b.score - a.score || a.idx - b.id
 
 export const haystack = o => norm([o.title, o.summary, o.provider, o.where, o.expertise, o.kind, ...o.tags].filter(Boolean).join(' '))
 export const matchesQ = (x, q) => { const t = norm(q); return !t || t.split(' ').every(w => (x._h ??= haystack(x.o)).includes(w)) }
+
+// ---- Blue Science Park content ----
+// Park-organised content is identified by an explicit publisherId on the record, never by words in a title or provider name.
+// Staff-created records get it when they are saved (events/eventStore.js); sourced and demo records set it in their own data.
+export const PARK_ID = 'bsp'
+export const isPark = o => o.publisherId === PARK_ID
+// Hub grouping comes from the category: events are activities, knowledge items are news, everything else is a programme or opportunity.
+export const hubKind = o => (o.mcat === 'events' ? 'activity' : o.mcat === 'knowledge' ? 'news' : 'programme')
+export const HUB_LABEL = { activity: 'Event', programme: 'Programme or call', news: 'Announcement' }
+
+// Up to n park items for the Overview. Scheduled activities come first by nearest date, then announcements by recency; never padded.
+export const parkOrder = items => {
+  const sched = items.filter(x => hubKind(x.o) !== 'news' && x.u).sort((a, b) => a.u.days - b.u.days || a.idx - b.idx)
+  const rest = items.filter(x => !sched.includes(x)).sort((a, b) => (b.o.published || 0) - (a.o.published || 0) || a.idx - b.idx)
+  return [sched, rest]
+}
+export const parkPicks = (live, n = 3) => {
+  const [sched, rest] = parkOrder(live.filter(x => isPark(x.o)))
+  const news = rest.filter(x => hubKind(x.o) === 'news')
+  const out = [...sched.slice(0, 2), ...news.slice(0, 1)]
+  for (const x of [...sched, ...rest]) if (out.length < n && !out.includes(x)) out.push(x)
+  return out.slice(0, n)
+}

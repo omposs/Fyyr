@@ -1,20 +1,13 @@
 import { useEffect } from 'react'
 import MemberApp from './member/MemberApp.jsx'
-import { clearSession, getSession, navigate } from './auth.js'
+import StaffApp from './staff/StaffApp.jsx'
+import { getSession, navigate } from './auth.js'
 
-// Blank placeholders. The demo session only gates routing; it is not real authorization.
+// Role-gated routing. The demo session only gates the UI here; it is not real authorization (see staff/analyticsApi.js).
+// Staff pages are never linked from the member area, and a member session opening /staff is sent home.
 export default function InternalPage({ role, path = '' }) {
   const ok = getSession()?.role === role
-  useEffect(() => {
-    if (role === 'staff') document.title = 'Fyyr – Staff'
-    if (!ok) navigate('/', true)
-  }, [ok, role])
+  useEffect(() => { if (!ok) navigate('/', true) }, [ok])
   if (!ok) return null
-  if (role === 'member') return <MemberApp path={path} />
-  return (
-    <main className={`internal internal-${role}`} data-page={role}>
-      <h1 className="sr">{role === 'staff' ? 'Staff area' : 'Member area'}</h1>
-      <button type="button" className="link-btn internal-out" onClick={() => { clearSession(); navigate('/') }}>Log out</button>
-    </main>
-  )
+  return role === 'member' ? <MemberApp path={path} /> : <StaffApp path={path} />
 }

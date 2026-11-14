@@ -1,0 +1,345 @@
+// ---- VERIFIED science park network records (hand-collected from public pages, NOT continuously monitored) ----
+// Raw records only. The UI never imports this file: it reads through ./networkRepository.js (via network/data.js) so a future API can replace it.
+// Everything here comes from public web pages. Each fact carries the page it came from and the date it was read.
+// `via`: 'official' = the company's or park's own page, read by us; 'directory' = a park member-directory page, read by us;
+//        'search' = only seen as a web-search result summary; the page itself was NOT read. Treat as a lead, not evidence.
+// No Fyyr member interests, searches or other internal data are used or stored here.
+export const D13 = '2026-11-13', D14 = '2026-11-14'
+export const f = (t, u, q, d = D14, via = 'official') => ({ t, u, q, d, via })
+const BSP = 'https://www.bluesciencepark.se/'
+
+export const PARKS = {
+  bsp: {
+    id: 'bsp', short: "BSP", region: "Blekinge", blurb: "Science park in Karlskrona with focus areas in marine technology, digital solutions (IoT, cyber security, AI), e-health and community building.", focusTags: ["Marine technology","Digital: IoT, cyber security, AI","E-health","Community building"], model: "Companies are listed in a public member directory.", logo: null, name: 'Blue Science Park', city: 'Karlskrona', website: BSP,
+    read: 'Official pages read on 14 Nov 2026.',
+    focus: [
+      f('Marine technology: defence innovation, marine engineering development and protection of critical marine infrastructure.', BSP + 'om-oss/', 'Inom marin teknik fokuserar vi på försvarsinnovation, marinteknisk utveckling och skydd av kritisk marin infrastruktur.'),
+      f('Digital solutions: generative AI and design-driven future methodology.', BSP + 'om-oss/', 'Inom digitala lösningar fokuserar vi på generativ AI och designdriven framtidsmetodik.'),
+      f('Lists four focus-area pages: Digital (IoT, national node in cyber security), Marine technology, E-health and Community building.', BSP + 'vara-medlemmar/', 'Sveriges centrum för IoT och nationell nod inom Cyber Security'),
+    ],
+    industries: 'Marine, defence, digital (IoT, cyber security, AI), e-health and community building, as named on its own focus-area pages.',
+    facilities: [
+      f('“Test and development” service for ideas to be developed, tested and verified. No named labs or test beds are listed on that page.', BSP + 'vara-tjanster/test-utveckling/', 'miljöer där idéer kan utvecklas, testas och verifieras'),
+      f('Services: inspiration and competence, test and development, network and matching, ways to funding.', BSP + 'english/', 'We inspire and arrange meetings, seminars and trainings.'),
+      f('Named projects include DigIT Hub Sweden, REAVES, AI Factory Blekinge, EM-Power Impact and AI Lab Blekinge.', BSP + 'english/'),
+      f('Events and meetings: Marine Innovation Day (with Marine Technology Center of Sweden), Wednesday lunches, TCL & Friends.', BSP),
+    ],
+    members: { listed: 'Directory is paginated (“Ladda mer”). Only the first 16 names were read.', stated: f('The English page says “more than 80 members”.', BSP + 'english/', 'Today we have more than 80 members', D14), url: BSP + 'vara-medlemmar/' },
+  },
+  lsp: {
+    id: 'lsp', short: "LSP", region: "Östergötland", blurb: "Science park in the Mjärdevi area of Linköping. Its own website refused access, so this description rests on third-party directory summaries.", focusTags: ["ICT and software","Health and pharmaceuticals","Computer hardware","Civil engineering"], focusSource: "Third-party summary, not confirmed by the park", model: "How companies relate to the park could not be established: its directory was not readable.", logo: null, name: 'Linköping Science Park', city: 'Linköping (Mjärdevi)', website: 'https://linkopingsciencepark.se/',
+    read: 'The park’s own website could not be read: linkopingsciencepark.se and mjardevi.se both returned HTTP 403 (refused automated access) on 14 Nov 2026. Park-level information below comes from web-search result summaries only.',
+    focus: [],
+    focusNote: 'Unknown: the park’s own statement of focus areas could not be read.',
+    secondaryFocus: [
+      f('Search summaries of third-party pages (including the IASP directory) list main sectors as civil engineering, computer hardware, health and pharmaceuticals, ICT and software engineering.', 'https://www.iasp.ws/our-members/directory/@6005', undefined, D14, 'search'),
+      f('A regional investment brochure (Region Östergötland) describes members as high-tech companies, most with strong ties to Linköping University research.', 'https://externwebb.regionostergotland.se/ru/kampanjsidor/invest/digital-technologies', undefined, D14, 'search'),
+    ],
+    industries: 'Unknown from the park itself. Third-party summaries mention ICT, software, medical technology and vehicle safety.',
+    facilities: [],
+    secondaryFacilities: [
+      f('Creactive: a collaboration space, appearing in search results on mjardevi.se (page not read).', 'https://www.mjardevi.se/creactive', undefined, D14, 'search'),
+      f('A municipal “test bed ticket” programme run with LEAD, reported in search summaries (source URL not identified, so treat as a lead only).', null, undefined, D14, 'search'),
+    ],
+    members: { listed: 'No directory could be read.', stated: null, url: 'https://linkopingsciencepark.se/',
+      conflict: 'Company counts differ between search summaries: about 300, “more than 350”, “more than 400” and “about 600”. No figure is confirmed from the park’s own site, so none is used.' },
+  },
+  ksp: {
+    id: 'ksp', short: "KSP", region: "Kalmar County", blurb: "Innovation partner for startups and scaleups in Kalmar, with an incubator open to startups across the county.", focusTags: ["Sustainable food systems","Defence and security","Life science","AI and digital technology","Cleantech and energy tech"], model: "Incubator programme plus associate, partner and IoT World groupings. The relationship is stated per company on the park’s pages.", logo: null, name: 'Kalmar Science Park', city: 'Kalmar', website: 'https://kalmarsciencepark.se/',
+    read: 'Park homepage, company directory and incubator page, and its SISP member page, read on 14 Nov 2026.',
+    legal: 'Kalmar Science Park AB',
+    focus: [
+      f('Industries named on its SISP member page include sustainable food systems, fintech, defence and security, life science, SaaS, AI and digital technology, biotechnology, cleantech and energy tech.', 'https://sisp.se/en/medlem/kalmar-science-park/', undefined, D14, 'directory'),
+      f('Supports startups and scaleups; the incubator is open to startups across the county and asks for a clear sustainability focus.', 'https://kalmarsciencepark.se/starta-foretag/incubator/'),
+    ],
+    industries: 'Broad: the SISP page lists food, fintech, defence, life science, SaaS, AI, biotech and cleantech among others.',
+    facilities: [f('Incubator programme for startups, plus an “Associate”, “Partner” and “IoT World” grouping in its company directory (the text read does not label each company).', 'https://kalmarsciencepark.se/foretagen/')],
+    members: { listed: 'The directory shows about 150 company logos but the text read does not say which relationship each company has. Only companies whose incubator link is stated on the park’s own pages are included here.', stated: null, url: 'https://kalmarsciencepark.se/foretagen/' },
+  },
+  jsp: {
+    id: 'jsp', short: "SPJ", region: "Jönköping County", blurb: "Incubator and science park supporting entrepreneurs, startups and companies in developing sustainable business.", focusTags: ["Sustainable production","AI and digital technology","Material innovation","Industrial change"], model: "Lists incubator companies and alumni. The companies shown here are current incubator companies.", logo: null, name: 'Science Park Jönköping', city: 'Jönköping', website: 'https://sciencepark.se/',
+    read: 'Park pages (about, owners, incubator companies) and its SISP member page read on 14 Nov 2026.',
+    legal: 'Science Park Jönköping AB',
+    focus: [
+      f('Describes itself as an incubator and a science park supporting entrepreneurs, startups and companies in developing sustainable business.', 'https://www.sisp.se/en/medlem/science-park-jonkoping/', undefined, D14, 'directory'),
+      f('Industries named on SISP: sustainable production, AI and digital technology, social innovation, material innovation, industrial change.', 'https://www.sisp.se/en/medlem/science-park-jonkoping/', undefined, D14, 'directory'),
+    ],
+    industries: 'Sustainable production, AI and digital technology, material innovation and industrial change, as listed on its SISP page.',
+    facilities: [f('Incubator programme that runs for 6 to 24 months.', 'https://sciencepark.se/en/innovation-impact/our-companies')],
+    members: { listed: 'The “Our companies” page separates incubator companies from alumni, but the alumni list did not render. Only current incubator companies named on the incubator archive are included.', stated: null, url: 'https://sciencepark.se/en/innovation-impact/our-companies' },
+  },
+  cv: {
+    id: 'cv', short: "CV", region: "Västra Götaland (Göteborg)", blurb: "Deep-tech investor and venture builder in the Chalmers entrepreneurial ecosystem. It is not a tenancy-based science park.", focusTags: ["Deep tech","University spin-outs"], model: "Portfolio companies, each with a status shown on its own company page.", logo: null, name: 'Chalmers Ventures', city: 'Göteborg', website: 'https://chalmersventures.com/',
+    read: 'Homepage, startup list and four company pages read on 14 Nov 2026. A Chalmers page about Johanneberg Science Park returned 404, so that organisation’s status is not established and it is not used.',
+    legal: 'Chalmers Ventures',
+    focus: [f('Describes itself as the deep-tech investor within the Chalmers entrepreneurial ecosystem, supporting researchers, entrepreneurs and startups.', 'https://chalmersventures.com/', 'Chalmers Ventures is the deep-tech investor within in the Chalmers entrepreneurial ecosystem')],
+    industries: 'Deep tech and research-based spinouts. Not a tenancy-based science park.',
+    facilities: [],
+    members: { listed: 'The startup list has filters (current, alumni, exits) that do not show in the text read. Status comes from each company’s own page, and the pages do not define “Current”.', stated: null, url: 'https://www.chalmersventures.com/startups/' },
+  },
+}
+
+const SECT ='Cleura Cloud is powered by OpenStack'
+// ---- companies (small verified sample; NOT a membership list) ----
+export const COMPANIES = [
+  {
+    id: 'cleura', park: 'bsp', name: 'Cleura', website: 'https://cleura.com/', summary: 'Cloud infrastructure provider built on OpenStack, with a compliance focus.',
+    affiliation: { status: 'confirmed', relation: 'Member', note: 'Listed in Blue Science Park’s member directory.', u: BSP + 'medlem/cleura/', d: D13 },
+    capabilities: [f('Provides cloud infrastructure as a service built on OpenStack.', 'https://cleura.com/', SECT, D13), f('Offers Compliant Cloud, Public Cloud and Private Cloud.', 'https://cleura.com/', undefined, D13)],
+    markets: [f('Names Defense, Public Sector, AI, Media, MedTech and Cybersecurity among its sectors.', 'https://cleura.com/', undefined, D13)],
+    projects: [], needs: [],
+    industry: ['Defence', 'Public sector'], tech: ['Cloud', 'Cybersecurity', 'AI'],
+  },
+  {
+    id: 'roxtec', park: 'bsp', name: 'Roxtec', website: 'https://www.roxtec.com/', summary: 'Flexible sealing solutions for cable and pipe penetrations.',
+    affiliation: { status: 'confirmed', relation: 'Member', note: 'Listed in Blue Science Park’s member directory.', u: BSP + 'medlem/roxtec/', d: D13 },
+    capabilities: [f('Develops, manufactures and delivers flexible sealing solutions for cable and pipe penetrations.', 'https://www.roxtec.com/', 'Roxtec develops, manufactures and delivers flexible sealing solutions for cable and pipe penetrations.', D13)],
+    markets: [f('Lists Infrastructure, Manufacturing industry, Marine, Offshore oil & gas, Power and Process industries.', 'https://www.roxtec.com/en/industries/', undefined, D13)],
+    projects: [], needs: [],
+    industry: ['Maritime', 'Offshore', 'Energy', 'Manufacturing'], tech: ['Cable and pipe sealing'],
+  },
+  {
+    id: 'oht', park: 'bsp', name: 'Ocean Harvesting Technologies', website: 'https://www.oceanharvesting.com/', summary: 'Wave energy technology, validated through EU-funded prototype projects.',
+    affiliation: { status: 'confirmed', relation: 'Member', note: 'Listed in Blue Science Park’s member directory, under Energy.', u: BSP + 'medlem/ocean-harvesting/', d: D13 },
+    capabilities: [f('Develops wave energy technology, including the 500 kW InfinityWEC point absorbing wave energy converter.', 'https://www.oceanharvesting.com/', 'InfinityWEC is a 500 kW point absorbing wave energy converter.', D13)],
+    markets: [f('Based in Göteborg and Karlskrona, Sweden.', 'https://www.oceanharvesting.com/', undefined, D13)],
+    projects: [f('Validating its technology with prototypes in the EU-funded projects INFINITY and WECHULL+.', 'https://www.oceanharvesting.com/', undefined, D13)], needs: [],
+    industry: ['Energy', 'Offshore'], tech: ['Wave energy'],
+  },
+  {
+    id: 'addsecure', park: 'bsp', name: 'AddSecure – Smartgrids', website: 'https://www.addsecure.se/elnatslosningar/', summary: 'Communication platforms for monitoring, analysing and detecting faults in power grids.',
+    affiliation: { status: 'confirmed', relation: 'Member', note: 'Has a page in Blue Science Park’s member directory.', u: BSP + 'medlem/addsecure/', d: D14 },
+    capabilities: [f('Offers communication platforms and solutions for monitoring, analysis and fault detection in power grids (translated).', BSP + 'medlem/addsecure/', 'Erbjuder kommunikationsplattformar och lösningar för övervakning, analys och feldetektering i elnät.', D14, 'directory')],
+    markets: [], projects: [], needs: [],
+    industry: ['Energy'], tech: ['Grid monitoring', 'Communication platforms'],
+  },
+  {
+    id: 'dnvcyber', park: 'bsp', name: 'DNV Cyber', website: 'https://www.dnv.com/cyber/', summary: 'IT and OT security services, risk management and threat identification.',
+    affiliation: { status: 'confirmed', relation: 'Member', note: 'Has a page in Blue Science Park’s member directory.', u: BSP + 'medlem/dnv-cyber/', d: D14 },
+    capabilities: [f('Offers IT and OT security services, risk management and threat identification (translated).', BSP + 'medlem/dnv-cyber/', 'Erbjuder tjänster inom IT- och OT-säkerhet, riskhantering, hotidentifiering', D14, 'directory')],
+    markets: [], projects: [], needs: [],
+    industry: [], tech: ['Cybersecurity', 'OT security'],
+  },
+  {
+    id: 'affarsverken', park: 'bsp', name: 'Affärsverken', website: 'https://www.affarsverken.se/', summary: 'Local utility: electricity, heat and fibre, waste collection and archipelago ferries in Karlskrona.',
+    affiliation: { status: 'confirmed', relation: 'Member', note: 'Has a page in Blue Science Park’s member directory.', u: BSP + 'medlem/affarsverken/', d: D14 },
+    capabilities: [f('Supplies electricity, heat and fibre, collects waste and runs archipelago ferries in Karlskrona (translated).', BSP + 'medlem/affarsverken/', 'Levererar el, värme och fiber, samlar in avfall och driver skärgårdstrafik i Karlskrona', D14, 'directory')],
+    markets: [], projects: [], needs: [],
+    industry: ['Energy', 'Public sector'], tech: ['Energy supply', 'Fibre'],
+  },
+  {
+    id: 'requtech', park: 'lsp', name: 'ReQuTech', website: 'https://requtech.com/', summary: 'Swedish developer and manufacturer of satellite-communication (SATCOM) terminals and antennas.',
+    affiliation: { status: 'conflicting', relation: 'Not established', note: 'ReQuTech’s own pages do not mention Linköping Science Park or Mjärdevi; they give its headquarters as Linköping. A web-search summary said its office is within the park, but the contact page read on 14 Nov 2026 gives a different address (Låsbomsgatan 18b) and no park. Possibly outdated. Park directory could not be read.', u: 'https://requtech.com/contact/', d: D14 },
+    capabilities: [
+      f('SATCOM product developer and manufacturer: manpack, flyaway, on-the-move, phased-array and troposcatter terminals.', 'https://requtech.com/', 'SATCOM product developer and manufacturer based in Sweden.'),
+      f('Technology pages cover phased arrays, troposcatter, parabolic antennas and antenna control and satellite tracking.', 'https://requtech.com/'),
+    ],
+    markets: [f('Names land mobility, maritime, government and aviation as application areas.', 'https://requtech.com/')],
+    projects: [], needs: [],
+    industry: ['Maritime', 'Public sector', 'Aviation'], tech: ['Satellite communication', 'Antennas'],
+  },
+  {
+    id: 'nira', park: 'lsp', name: 'NIRA Dynamics', website: 'https://www.niradynamics.com/', summary: 'Software products built on vehicle and connected-vehicle data: tyre and road-condition indicators and road monitoring.',
+    affiliation: { status: 'unconfirmed', relation: 'Not established', note: 'NIRA’s own page gives a Linköping address (Wallenbergs gata 4) and does not mention a science park. A web-search summary of a third-party page placed it at Mjärdevi, which was not verified. Park directory could not be read.', u: 'https://www.niradynamics.com/', d: D14 },
+    capabilities: [
+      f('Automotive products include Tire Pressure Indicator, Loose Wheel Indicator and Tire Grip Indicator.', 'https://www.niradynamics.com/'),
+      f('Road Health is an automated system for road monitoring, built on connected vehicle data.', 'https://www.niradynamics.com/', 'An automated and objective system for road monitoring.'),
+    ],
+    markets: [f('Names automotive software, electric vehicles, heavy commercial vehicles, motorcycles, predictive maintenance and road maintenance.', 'https://www.niradynamics.com/')],
+    projects: [], needs: [f('Describes itself as a supplier “to collaborate with”, a generic line rather than a stated partnership need.', 'https://www.niradynamics.com/', 'we are a forward-looking supplier to collaborate with.')],
+    industry: ['Automotive', 'Road maintenance'], tech: ['Connected vehicle data', 'Data analytics'],
+  },
+  {
+    id: 'sectra', park: 'lsp', name: 'Sectra Communications', website: 'https://communications.sectra.com/', summary: 'Secure communication products for sensitive and classified information, for defence and public authorities.',
+    affiliation: { status: 'unconfirmed', relation: 'Not established', note: 'Sectra’s own pages say it is headquartered in Linköping and do not mention a science park. Park directory could not be read.', u: 'https://communications.sectra.com/about-sectra/contact/', d: D14 },
+    capabilities: [
+      f('Provider of secure communication solutions up to TOP SECRET classification level.', 'https://communications.sectra.com/', 'Leading provider of secure communication solutions — up to and including the TOP SECRET classification level.'),
+      f('Products include Sectra Tiger/E, Remote Connect, Stealth Connect, TETRA encryption and Managed Detection and Response.', 'https://communications.sectra.com/'),
+    ],
+    markets: [f('Names military and defense, civil authorities, corporations and critical infrastructure.', 'https://communications.sectra.com/')],
+    projects: [f('Sectra Tiger has been used by several EU organisations since 2010 (as stated by Sectra).', 'https://communications.sectra.com/')],
+    needs: [], needsNote: 'The contact form is stated to be “for sales inquiries and product information only”, so no partnership route is stated.',
+    industry: ['Defence', 'Public sector', 'Critical infrastructure'], tech: ['Secure communications', 'Encryption', 'Managed detection and response'],
+  },
+  // ---- Kalmar Science Park (relationship = what the park’s own pages state) ----
+  {
+    id: 'swevenom', park: 'ksp', name: 'Swevenom', website: 'https://swevenom.com/', summary: 'Connects academia and industry around biologically derived substances, with project development in toxinology.',
+    affiliation: { status: 'confirmed', relation: 'Incubator participant', note: 'The park’s news (18 Sep 2026, Incubator category) says Swevenom gets support to develop its business idea in Kalmar. Also listed in the park’s company directory.', u: 'https://kalmarsciencepark.se/', d: D14 },
+    capabilities: [f('Combines access to biologically derived substances with structured, business-driven collaboration and project development within toxinology.', 'https://swevenom.com/', 'Swevenom connects academia and industry by combining access to biologically derived substances with structured, business-driven collaboration and project development within toxinology.')],
+    markets: [f('Works with biotech, pharmaceutical companies and R&D-driven organisations.', 'https://swevenom.com/')],
+    projects: [], needs: [],
+    industry: ['Biotech', 'Pharma'], tech: ['Toxinology'],
+  },
+  {
+    id: 'carbogaia', park: 'ksp', name: 'CarboGaia', website: 'https://carbogaia.se/', summary: 'Develops fertilizers from rapidly composted organic residues and recovered minerals.',
+    affiliation: { status: 'confirmed', relation: 'Incubator company', note: 'A park press release (2 Jul 2026) calls CarboGaia a startup “from Kalmar Science Park’s incubator”. Also listed in the park’s company directory.', u: 'https://kalmarsciencepark.se/', d: D14 },
+    capabilities: [f('Developing fertilizers based on rapidly composted organic residues and recovered minerals; products include circular fertilizer, carbon capture and biochar.', 'https://carbogaia.se/', 'CarboGaia is developing the next generation of fertilizers based on rapidly composted organic residues and recovered minerals.')],
+    markets: [f('Plant nutrition.', 'https://carbogaia.se/')],
+    projects: [], needs: [f('Says it is developing scalable solutions “through research, pilot production, and partnerships”. A general statement, not a named need.', 'https://carbogaia.se/', 'Through research, pilot production, and partnerships, we are developing scalable solutions for sustainable plant nutrition.')],
+    industry: ['Agriculture'], tech: ['Composting', 'Biochar', 'Circular economy'],
+  },
+  {
+    id: 'arkimera', park: 'ksp', name: 'Arkimera Robotics', website: 'https://arkimera.se/', summary: 'Light-weight API services that turn data-entry systems into self-learning ones.',
+    affiliation: { status: 'confirmed', relation: 'Incubator alumnus', note: 'The park’s incubator page says Arkimera Robotics AB went through its incubator programme (past tense).', u: 'https://kalmarsciencepark.se/starta-foretag/incubator/', d: D14 },
+    capabilities: [f('Offers API micro services that transform a data-entry system into a self-learning system, using autonomous model-building algorithms.', 'https://arkimera.se/', 'give your software learning power')],
+    markets: [f('Refers to a tailored solution for accounting software vendors.', 'https://arkimera.se/')],
+    projects: [], needs: [],
+    industry: ['Software'], tech: ['AI', 'Machine learning'],
+  },
+  // ---- Science Park Jönköping ----
+  {
+    id: 'blexton', park: 'jsp', name: 'Blexton', website: 'https://www.blexton.ai/sv', summary: 'AI platform that automates inbound and outbound calls and inbound email for companies.',
+    affiliation: { status: 'confirmed', relation: 'Incubator company', note: 'Listed as “Inkubatorföretag” on the park’s incubator archive.', u: 'https://sciencepark.se/company-type-tax/inkubatorforetag/', d: D14 },
+    capabilities: [f('AI-driven platform that automates handling of inbound calls, outbound calls and email, with real-time integration into company systems (translated).', 'https://www.blexton.ai/sv', 'Blexton är en AI-driven plattform som automatiserar och effektiviserar hanteringen av inkommande samtal, utgående samtal och e-post.')],
+    markets: [f('Sells to companies that handle many customer calls (translated).', 'https://www.blexton.ai/sv')],
+    projects: [], needs: [],
+    industry: ['Customer service'], tech: ['AI', 'Voice agents'],
+  },
+  {
+    id: 'harvestmoon', park: 'jsp', name: 'Harvest Moon', website: 'https://www.harvestmoon.se/', summary: 'Design company making waterless premium toilets for off-grid homes and cottages.',
+    affiliation: { status: 'confirmed', relation: 'Incubator company', note: 'The park’s incubator archive says Harvest Moon is part of its incubator programme (present tense).', u: 'https://sciencepark.se/company-type-tax/inkubatorforetag/', d: D14 },
+    capabilities: [f('Develops waterless toilets using urine separation, biochar, flush agent and active ventilation (translated).', 'https://www.harvestmoon.se/', 'Harvest Moon är ett svenskt designbolag. Vi utvecklar premiumtoaletter för en regenerativ livsstil.')],
+    markets: [f('Off-grid homes and cottages.', 'https://www.harvestmoon.se/')],
+    projects: [], needs: [],
+    industry: ['Sanitation'], tech: ['Biochar'],
+  },
+  {
+    id: 'apinovum', park: 'jsp', name: 'Röndum & Wadström (Apinovum)', website: 'https://apinovum.se/', summary: 'Designs and makes beekeeping products in its own workshop in Småland.',
+    affiliation: { status: 'confirmed', relation: 'Incubator participant', note: 'The park’s incubator archive says it has participated in the incubator since 2025.', u: 'https://sciencepark.se/company-type-tax/inkubatorforetag/', d: D14 },
+    capabilities: [f('Develops and manufactures beekeeping products, including a two-frame feeder for use in the hive (translated).', 'https://apinovum.se/', 'Vi utvecklar och tillverkar produkter för biodling i vår egen verkstad i Småland.')],
+    markets: [f('Beekeepers.', 'https://apinovum.se/')],
+    projects: [], needs: [],
+    industry: ['Agriculture'], tech: ['Product design'],
+  },
+  {
+    id: 'taleforge', park: 'jsp', name: 'Tale Forge', website: 'https://www.tale-forge.app/', summary: 'Consumer app that creates AI-generated personalised stories for children aged 4–9.',
+    affiliation: { status: 'confirmed', relation: 'Incubator company', note: 'Listed as “Inkubatorföretag” on the park’s archive; the company’s own site also says it is part of the park’s incubator.', u: 'https://sciencepark.se/company-type-tax/inkubatorforetag/', d: D14 },
+    capabilities: [f('Generates personalised children’s stories with AI-made text, images and voice (translated).', 'https://www.tale-forge.app/', 'Familjens sagoapp.')],
+    markets: [f('Families with children aged 4–9.', 'https://www.tale-forge.app/')],
+    projects: [], needs: [],
+    industry: ['Consumer apps'], tech: ['AI'],
+  },
+  // ---- Chalmers Ventures (relationship = status shown on its own company pages) ----
+  {
+    id: 'modvion', park: 'cv', name: 'Modvion', website: 'https://www.modvion.com/', summary: 'Builds modular wind turbine towers in engineered wood.',
+    affiliation: { status: 'confirmed', relation: 'Portfolio company', note: 'Chalmers Ventures’ own page lists Modvion with status “Current”. The page does not say what “Current” means, so it is shown as a portfolio listing, not as incubation or tenancy.', u: 'https://chalmersventures.com/startups/modvion/', d: D14 },
+    capabilities: [f('Builds wind turbine towers in wood, modular and designed to simplify transport.', 'https://www.modvion.com/', 'We build wind turbine towers. In wood.')],
+    markets: [f('Wind energy. Names Enel Green Power (cooperation agreement) and Vattenfall (ongoing collaboration); Vestas invested in 2021.', 'https://www.modvion.com/')],
+    projects: [], needs: [],
+    industry: ['Energy'], tech: ['Wind energy', 'Engineered wood'],
+  },
+  {
+    id: 'atium', park: 'cv', name: 'Atium', website: 'https://www.atium.se/', summary: 'Electrochemical filter that selectively removes mercury from water, starting with dental clinics.',
+    affiliation: { status: 'confirmed', relation: 'Portfolio company', note: 'Chalmers Ventures’ own page lists Atium with status “Current”, and says the technology comes from research at Chalmers.', u: 'https://chalmersventures.com/startups/atium/', d: D14 },
+    capabilities: [f('Patent-pending reversible electrochemical filter for selective removal of mercury from water.', 'https://www.atium.se/', 'An electrochemical solution for selective removal of mercury from water')],
+    markets: [f('Dental clinics first, then mining and acid treatment.', 'https://www.atium.se/')],
+    projects: [], needs: [],
+    industry: ['Water treatment'], tech: ['Electrochemistry'],
+  },
+  {
+    id: 'adsorbi', park: 'cv', name: 'Adsorbi', website: 'https://adsorbi.com/', summary: 'Cellulose-based material that captures gaseous air pollutants for cleaner indoor air.',
+    affiliation: { status: 'confirmed', relation: 'Portfolio company', note: 'Chalmers Ventures’ own page lists Adsorbi with status “Current”.', u: 'https://chalmersventures.com/startups/adsorbi/', d: D14 },
+    capabilities: [f('Captures gaseous air pollutants with a cellulose-based material from Nordic forest.', 'https://adsorbi.com/', 'capturing gaseous air pollutants with an innovative cellulose-based material from the Nordic forest')],
+    markets: [f('Households, commercial buildings, industrial environments, sports and leisure, art conservation.', 'https://adsorbi.com/')],
+    projects: [], needs: [],
+    industry: ['Indoor air'], tech: ['Cellulose materials'],
+  },
+]
+
+// ---- documented connections: publicly evidenced joint projects, partnerships or other relationships ----
+// Shape: { a, b, kind, t, u, d (date of the relationship), retrieved }. Being in the same park, directory or event is NOT a connection.
+// None were found among the sources reviewed for this sample. Add an entry only with a source that names both companies.
+export const CONNECTIONS = []
+
+// ---- potential collaborations: inferred, hand-curated from the sampled sources. There is no scoring or matching engine. ----
+// Each one cites the profile facts it relies on (`ev`: [companyId, factGroup, index]) and says what is unknown.
+// `why`: one short sentence for cards. `propose`: the single proposed collaboration. `topics`: filter topics. `verify`: shown as “Needs verification”.
+// Suggestions whose companies lack a confirmed park affiliation (the Linköping ones below) are kept for saved items and staff review only.
+export const VERIFIED_SUGGESTIONS = [
+  {
+    id: 's-cleura-dnvcyber', a: 'cleura', b: 'dnvcyber', type: 'shared', label: 'Shared interests', theme: 'Cybersecurity for hosted systems', topics: ['Cybersecurity'], verify: true,
+    why: 'Cleura lists cybersecurity among its sectors; DNV Cyber sells IT and OT security services.',
+    explore: 'Compare how security requirements for hosted systems are handled, and whether DNV Cyber’s services fit Cleura’s compliance-focused customers.',
+    propose: 'A short exchange on security requirements for hosted workloads, to see whether DNV Cyber’s assessment services fit Cleura’s customers.',
+    parts: 'Cleura: compliant cloud. DNV Cyber: IT and OT security services.',
+    ev: [['cleura', 'markets', 0], ['cleura', 'capabilities', 1], ['dnvcyber', 'capabilities', 0]],
+    gaps: ['Neither company states an interest in this collaboration.', 'DNV Cyber’s work with cloud providers is not described on the page read.', 'Cleura may already use other security partners.'],
+    next: 'Check DNV Cyber’s service pages for cloud work before raising it with either member.',
+  },
+  {
+    id: 's-addsecure-dnvcyber', a: 'addsecure', b: 'dnvcyber', type: 'complementary', label: 'Complementary expertise', theme: 'OT security for grid communication', topics: ['Cybersecurity', 'Energy'], verify: true,
+    why: 'AddSecure runs communication platforms for power-grid monitoring; DNV Cyber offers OT security and risk work.',
+    explore: 'Whether OT security assessment is relevant to grid-monitoring communication platforms.',
+    propose: 'Discuss whether an OT security assessment fits grid-monitoring communication platforms like AddSecure’s.',
+    parts: 'AddSecure: grid-monitoring communication. DNV Cyber: OT security.',
+    ev: [['addsecure', 'capabilities', 0], ['dnvcyber', 'capabilities', 0]],
+    gaps: ['AddSecure’s own security features and needs are not described on the page read.', 'DNV Cyber’s energy-sector experience is not described on the page read.', 'Neither company states an interest in this collaboration.'],
+    next: 'Read AddSecure’s product pages for stated security features before suggesting an introduction.',
+  },
+  {
+    id: 's-affarsverken-carbogaia', a: 'affarsverken', b: 'carbogaia', type: 'complementary', label: 'Complementary expertise', theme: 'Organic waste as a fertilizer input', topics: ['Circular economy'], verify: true,
+    why: 'Affärsverken collects waste in Karlskrona; CarboGaia makes fertilizer from composted organic residues.',
+    explore: 'Whether organic waste collected in Karlskrona could be a feedstock for CarboGaia’s pilot production.',
+    propose: 'Explore whether a suitable organic waste stream from Karlskrona could supply CarboGaia’s pilot production.',
+    parts: 'Affärsverken: waste collection. CarboGaia: fertilizer from organic residues.',
+    ev: [['affarsverken', 'capabilities', 0], ['carbogaia', 'capabilities', 0], ['carbogaia', 'needs', 0]],
+    gaps: ['Which waste types Affärsverken handles, and whether any are organic residues CarboGaia can use, is not stated.', 'Regulation on handling and reusing waste is not assessed.', 'Neither company states an interest in this collaboration.'],
+    next: 'Ask staff to check what waste streams Affärsverken reports, before any introduction.',
+  },
+  {
+    id: 's-cleura-sectra', explore: "Compare how defence and public-sector security requirements are changing, or co-host a briefing for defence suppliers.", parts: "Cleura: compliant cloud. Sectra: classified communication.", a: 'cleura', b: 'sectra', type: 'shared', label: 'Shared market', theme: 'Defence and public-sector security',
+    idea: 'Both serve defence and public-sector customers with security as a selling point (Cleura through compliant cloud, Sectra through classified communication). They could compare how those customers’ security requirements are changing, or co-host a briefing for defence suppliers.',
+    value: 'Practical use: shared understanding of customer requirements, possible referrals. Not a technical integration.',
+    ev: [['cleura', 'markets', 0], ['cleura', 'capabilities', 1], ['sectra', 'markets', 0], ['sectra', 'capabilities', 0]],
+    gaps: ['Cleura’s accreditation level compared with what Sectra’s customers require is unknown.', 'Sectra states that products are designed and produced in-house; no cloud or hosting need is stated.', 'They may sell into the same customers without any reason to work together.'],
+    next: 'Read both companies’ stated security accreditations. Only then ask Cleura, through the existing member relationship, whether it wants a security-vendor contact.',
+  },
+  {
+    id: 's-dnv-sectra', explore: "Exchange OT-security experience, after checking whether their services overlap.", parts: "DNV Cyber: IT/OT security services. Sectra: secure communication and detection and response.", a: 'dnvcyber', b: 'sectra', type: 'shared', label: 'Shared research area', theme: 'Cyber security services',
+    idea: 'Both work on cyber security: DNV Cyber on IT/OT security services and risk work, Sectra on secure communication and managed detection and response.',
+    value: 'Possible exchange of OT-security experience. Treat this as a possible overlap first: the two may compete on managed security services.',
+    ev: [['dnvcyber', 'capabilities', 0], ['sectra', 'capabilities', 1]],
+    gaps: ['Scope of Sectra’s detection and response service and DNV Cyber’s delivery model are not described in the sampled pages.', 'Competition cannot be ruled out; similarity alone is not evidence of a useful partnership.', 'No partnership interest is stated by either company.'],
+    next: 'Compare the two service descriptions line by line. If the overlap is large, do not pursue.',
+  },
+  {
+    id: 's-addsecure-sectra', explore: "Whether encrypted communication could protect grid-monitoring links for utilities.", parts: "AddSecure: grid-monitoring communication platforms. Sectra: encrypted communication.", a: 'addsecure', b: 'sectra', type: 'complementary', label: 'Complementary expertise', theme: 'Secure communication for critical infrastructure',
+    idea: 'AddSecure provides communication platforms for monitoring power grids; Sectra provides encrypted communication and names critical infrastructure among its markets. Sectra’s encryption could in principle protect grid-monitoring links.',
+    value: 'Practical use: a security layer for communication that grid operators depend on.',
+    ev: [['addsecure', 'capabilities', 0], ['sectra', 'capabilities', 1], ['sectra', 'markets', 0]],
+    gaps: ['AddSecure’s own security features and requirements are not in the sampled page.', 'Sectra’s listed products target classified government use; fit with commercial grid operators is not shown.', 'Sectra names no energy customers on the pages read.'],
+    next: 'Read AddSecure’s product pages for stated security features and check whether Sectra lists any energy-sector references.',
+  },
+  {
+    id: 's-oht-requtech', explore: "Whether satellite links could support remote monitoring of offshore wave-energy prototypes.", parts: "Ocean Harvesting: offshore wave-energy devices. ReQuTech: satellite terminals for maritime use.", a: 'oht', b: 'requtech', type: 'complementary', label: 'Complementary expertise', theme: 'Remote links for offshore equipment',
+    idea: 'Offshore wave-energy devices run in remote locations. ReQuTech makes satellite terminals and names maritime among its application areas, so it could in principle provide a data link for monitoring.',
+    value: 'Practical use: remote monitoring and control of offshore prototypes.',
+    ev: [['oht', 'capabilities', 0], ['oht', 'projects', 0], ['requtech', 'capabilities', 0], ['requtech', 'markets', 0]],
+    gaps: ['Ocean Harvesting’s communication needs and current solution are not stated.', 'ReQuTech’s products are described as terminals; no offering for energy equipment is stated.', 'Neither company states interest in this kind of collaboration.'],
+    next: 'Ask Ocean Harvesting through Blue Science Park whether remote connectivity is a problem before mentioning ReQuTech.',
+  },
+  {
+    id: 's-roxtec-requtech', explore: "Whether cable-entry sealing matters for marine antenna installations (weak evidence).", parts: "Roxtec: cable and pipe sealing. ReQuTech: marine satellite terminals.", a: 'roxtec', b: 'requtech', type: 'complementary', label: 'Complementary expertise (low evidence)', theme: 'Cable entries on vessels and installations',
+    idea: 'Marine antenna terminals need cables routed through decks or walls, which is what Roxtec’s sealing solutions are for. This is inferred from product types only.',
+    value: 'Practical use: installation guidance or a supplier relationship. Likely a weak fit.',
+    ev: [['roxtec', 'capabilities', 0], ['roxtec', 'markets', 0], ['requtech', 'markets', 0]],
+    gaps: ['Neither company mentions the other’s product category.', 'ReQuTech may already use other suppliers; Roxtec’s role in antenna installations is not shown.'],
+    next: 'Low priority. Keep only if staff find a source showing the need.',
+  },
+  {
+    id: 's-addsecure-nira', explore: "An exchange of methods for data-based monitoring of infrastructure.", parts: "Both analyse monitoring data, for power grids and for roads.", a: 'addsecure', b: 'nira', type: 'shared', label: 'Shared research area', theme: 'Data-based infrastructure monitoring',
+    idea: 'AddSecure monitors and detects faults in power grids; NIRA’s Road Health monitors road condition from connected-vehicle data. The technologies are related (data collection, analysis and fault detection) but applied to different infrastructure.',
+    value: 'Possible exchange of methods. No shared customers or markets are known, so value is uncertain.',
+    ev: [['addsecure', 'capabilities', 0], ['nira', 'capabilities', 1]],
+    gaps: ['The methods used by either company are not described in the sampled pages.', 'Different customers (grid operators versus road authorities and car makers).', 'No stated interest from either side.'],
+    next: 'Treat as a knowledge-exchange idea only, for example a joint session on infrastructure monitoring.',
+  },
+  {
+    id: 's-cleura-nira', explore: "Whether regional compliant cloud could host connected-vehicle data services (weak evidence).", parts: "Cleura: cloud infrastructure. NIRA: connected-vehicle data products.", a: 'cleura', b: 'nira', type: 'complementary', label: 'Complementary expertise (low evidence)', theme: 'Cloud infrastructure for data-heavy products',
+    idea: 'NIRA’s road and vehicle products depend on connected-vehicle data, which needs processing and storage. Cleura offers cloud infrastructure with a compliance focus.',
+    value: 'Practical use: a possible regional hosting option. NIRA’s current hosting is unknown.',
+    ev: [['cleura', 'capabilities', 0], ['cleura', 'capabilities', 1], ['nira', 'capabilities', 1]],
+    gaps: ['NIRA’s hosting setup and any data-location requirements are not stated.', 'Car-maker customers may dictate hosting.', 'No stated interest from either company.'],
+    next: 'Only pursue if NIRA states a hosting or data-sovereignty requirement.',
+  },
+]
