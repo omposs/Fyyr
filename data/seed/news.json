@@ -1,0 +1,5 @@
+[
+  {"title": "Offshore wind operators step up subsea inspection spending", "summary": "Operators in the North Sea and Baltic Sea plan to automate foundation inspection using autonomous underwater vehicles and sonar imaging.", "url": "https://example.org/news/subsea-inspection", "source_name": "Maritime Trends", "published_at": "2026-11-09", "tags": ["offshore wind", "auv", "sonar"]},
+  {"title": "Biofouling rules tighten for Baltic shipping", "summary": "New regional guidance increases demand for biofouling monitoring and hull cleaning technology.", "url": "https://example.org/news/biofouling-rules", "source_name": "Shipping Review", "published_at": "2026-10-30", "tags": ["biofouling", "shipping"]},
+  {"title": "Machine learning cuts feed waste at fish farms", "summary": "Pilot results show computer vision and machine learning reduce feed waste in aquaculture.", "url": "https://example.org/news/ml-fish-farms", "source_name": "Aqua Tech Daily", "published_at": "2026-11-05", "tags": ["aquaculture", "machine learning", "computer vision"]}
+]

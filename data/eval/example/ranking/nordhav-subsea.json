@@ -1,0 +1,18 @@
+{
+  "company": "Nordhav Subsea AB",
+  "profile_from": "nordhav-subsea",
+  "items": [
+    {"title": "Offshore wind farm adopts autonomous underwater vehicles for cable inspection", "summary": "A Baltic Sea operator is using AUVs with sonar to inspect export cables.", "relevant": true, "published_days_ago": 2},
+    {"title": "Machine learning detects defects in subsea foundations", "summary": "Researchers show sonar imagery and machine learning can find corrosion on offshore foundations.", "relevant": true, "published_days_ago": 5},
+    {"title": "Danish ports invest in offshore wind logistics", "summary": "Ports in Denmark expand capacity for turbine installation vessels.", "relevant": true, "published_days_ago": 9},
+    {"title": "Test site for marine robotics opens in Blekinge", "summary": "A new open test site in Sweden invites companies to trial underwater robots.", "relevant": true, "published_days_ago": 12},
+    {"title": "Cruise line unveils new buffet menu", "summary": "Dessert options expand across the fleet.", "relevant": false, "published_days_ago": 1},
+    {"title": "Container freight rates fall for third month", "summary": "Spot rates on Asia to Europe routes keep declining.", "relevant": false, "published_days_ago": 2},
+    {"title": "Salmon farm sensors cut feed waste", "summary": "Fish farm monitoring with cameras reduces overfeeding in Norway.", "relevant": false, "published_days_ago": 3},
+    {"title": "Telecom operator rolls out 5G standalone core", "summary": "Network vendors announce new radio access equipment.", "relevant": false, "published_days_ago": 4},
+    {"title": "Naval shipyard wins frigate contract", "summary": "Defence procurement agency awards a surface combatant order.", "relevant": false, "published_days_ago": 6},
+    {"title": "Yacht show opens with record attendance", "summary": "Luxury motor yachts on display at the autumn boat fair.", "relevant": false, "published_days_ago": 7},
+    {"title": "Research vessel sonar survey maps Baltic seabed", "summary": "Marine research team maps the seabed with multibeam sonar.", "relevant": true, "published_days_ago": 8},
+    {"title": "Shipping emissions rules tighten from January", "summary": "New fuel regulations apply to large vessels in European waters.", "relevant": false, "published_days_ago": 10}
+  ]
+}
