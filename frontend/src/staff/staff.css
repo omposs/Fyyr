@@ -220,7 +220,7 @@
 .st-active{margin:0}
 
 /* Our performance: centred, compact */
-.st-ours{max-width:1120px;margin:0 auto;width:100%;gap:20px}
+.st-ours{gap:20px}
 .st-ours .st-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
 .st-ours-grid{display:flex;flex-direction:column;gap:20px;min-width:0}
 .st-plain-card{background:var(--solid);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;display:grid;gap:10px;min-width:0}

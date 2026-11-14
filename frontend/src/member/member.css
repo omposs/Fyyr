@@ -12,7 +12,10 @@
 .mem-search input:focus{outline:none;background:#fff;border-color:var(--blue);box-shadow:0 0 0 3px rgba(43,60,255,.2)}
 .mem-av{width:36px;height:36px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:600;flex:none}
 .mem-scrim{display:none}
-.mem-content{padding:clamp(18px,3vw,40px);width:100%;max-width:1400px;outline:none}
+/* Shared page wrapper (member + staff): fills the column beside the sidebar, centred, 1440px content max. Gutters: 32 / 24 / 16. */
+.mem-content{--gut:32px;box-sizing:border-box;width:100%;min-width:0;max-width:calc(1440px + 2 * var(--gut));margin-inline:auto;padding:var(--gut);outline:none}
+@media(max-width:1024px){.mem-content{--gut:24px}}
+@media(max-width:640px){.mem-content{--gut:16px}}
 .mem-page{display:grid;gap:18px}
 .mem-lead{color:var(--muted);max-width:44em}
 .mem-sec{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
